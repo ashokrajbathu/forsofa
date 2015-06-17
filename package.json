@@ -28,7 +28,11 @@
     "jshint-stylish": "^0.2.0",
     "karma": "^0.12.24",
     "load-grunt-tasks": "^0.4.0",
-    "time-grunt": "^0.3.1"
+    "time-grunt": "^0.3.1",
+    "jasmine-core": "~2.3.4",
+    "karma-jasmine": "~0.3.5",
+    "karma-chrome-launcher": "~0.1.12",
+    "karma-firefox-launcher": "~0.1.6"
   },
   "engines": {
     "node": ">=0.10.0"

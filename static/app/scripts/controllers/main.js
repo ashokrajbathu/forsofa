@@ -7,9 +7,9 @@
  * Controller of the weberApp
  */
 angular.module('weberApp')
-	.controller('MainCtrl', function($scope, $timeout, $auth, $rootScope, $socket, Restangular, InfinitePosts,questions,
+	.controller('MainCtrl', function($scope, $timeout, $auth, $rootScope,Restangular, InfinitePosts,questions,
 	                                $alert, $http, CurrentUser,sortIListService, InterestsService,$location,
-	                                UserService, fileUpload, MatchButtonService) {
+	                                UserService, fileUpload, MatchButtonService, socket) {
 
 	    $scope.show_none_posts = false;
 	    $scope.load_main = $timeout(function(){
@@ -99,7 +99,7 @@ angular.module('weberApp')
                             return false;
                         }
                     };
-                    $socket.on('postNotifications', function(data){
+                    socket.on('postNotifications', function(data){
 
                         if(data.data.postnotific){
                             if($rootScope.currentUser.friends.indexOf(data.author) == -1){

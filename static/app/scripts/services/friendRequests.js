@@ -62,53 +62,118 @@ angular.module('weberApp')
 	})
 	.service('Friends', function($http, Restangular) {
 
-		this.addFriend = function(cuserid, puserid) {
-		    return Restangular.one('addfriend').get({
-		        cuserid : cuserid,
-		        puserid : puserid,
-		        seed:Math.random()
-		    });
-		}
+         this.addFriend = function(cuserid, puserid){
+             var self = this;
+             console.log('clicked on add friend')
+                var req = {
+                    method: 'POST',
+                    url: '/api/addfriend',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    data: {
+                            cuserid : cuserid,
+                            puserid : puserid,
+                            seed:Math.random()
+                    }
+                }
 
-		this.cancelRequest = function(cuserid, puserid){
-		    //console.log(cuserid, puserid)
-		    return Restangular.one('cancelfriend').get({
-		        cuserid : cuserid,
-		        puserid : puserid,
-		        seed:Math.random()
-		    });
+                return $http(req);
+         }
 
-		}
 
-		this.acceptRequest = function(cuserid, puserid){
-		    return Restangular.one('acceptfriend').get({
-		        cuserid : cuserid,
-		        puserid : puserid,
-		        seed:Math.random()
-		    });
+		 this.cancelRequest = function(cuserid, puserid){
+             var self = this;
+                var req = {
+                    method: 'POST',
+                    url: '/api/cancelfriend',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    data: {
+                            cuserid : cuserid,
+                            puserid : puserid,
+                            seed:Math.random()
+                    }
+                }
 
-		}
+                return $http(req);
+         }
 
-		this.rejectRequest = function(cuserid, puserid){
-		    return Restangular.one('rejectfriend').get({
-		        cuserid : cuserid,
-		        puserid : puserid,
-		        seed : Math.random()
-		    });
-		}
+		 this.acceptRequest = function(cuserid, puserid){
+             var self = this;
+                var req = {
+                    method: 'POST',
+                    url: '/api/acceptfriend',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    data: {
+                            cuserid : cuserid,
+		                    puserid : puserid,
+		                    seed:Math.random()
+                    }
+                }
+                return $http(req);
+         }
 
-		this.unFreind = function(cuserid, puserid){
-		    return Restangular.one('unfriend').get({
-		        cuserid : cuserid,
-		        puserid : puserid,
-		        seed : Math.random()
-		    });
-		}
+         this.rejectRequest = function(cuserid, puserid){
+             var self = this;
+                var req = {
+                    method: 'POST',
+                    url: '/api/rejectfriend',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    data: {
+                            cuserid : cuserid,
+		                    puserid : puserid,
+		                    seed:Math.random()
+                    }
+                }
+                return $http(req);
+         }
 
-		this.makeSeen = function(cuserid){
-		    return Restangular.one('makeseen').get({
-		        cuserid : cuserid,
-		        seed : Math.random()
-		    });
-		}
+
+         this.unFreind = function(cuserid, puserid){
+             var self = this;
+             var req = {
+                method: 'POST',
+                url: '/api/unfriend',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                        cuserid : cuserid,
+                        puserid : puserid,
+                        seed:Math.random()
+                }
+             }
+                return $http(req);
+         }
+
+		  this.makeSeen = function(cuserid){
+             var self = this;
+                var req = {
+                    method: 'POST',
+                    url: '/api/makeseen',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    data: {
+                            cuserid : cuserid,
+		                    seed:Math.random()
+                    }
+                }
+                return $http(req);
+         }
+	})
+	.service('socketOperations', function($http, Restangular, socket) {
+
+         this.emitSocket = function(property, roomId){
+             socket.emit(property, {id:roomId});
+             return 'hai'
+         }
+
+
 	});

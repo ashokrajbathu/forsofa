@@ -22,10 +22,11 @@ angular
 		'angularMoment',
 		'ngImgCrop',
 		'infinite-scroll',
-		'ngSocket',
+		//'ngSocket',
 		'cgBusy',
 		'autocomplete',
 		'luegg.directives',
+		'btford.socket-io'
 
 	])
 	.run(["$rootScope", "$location",
@@ -37,12 +38,12 @@ angular
 			});
 		}
 	])
-	.config(["$socketProvider", function ($socketProvider) {
+	//.config(["$socketProvider", function ($socketProvider) {
       //$socketProvider.setUrl("www.weber.ooo");
       //$socketProvider.setUrl("http://127.0.0.1:8000/");
-      $socketProvider.setUrl(location.host);
-      alert(location.host)
-    }])
+      //$socketProvider.setUrl(location.host);
+      //alert(location.host)
+    //}])
     .config(['RestangularProvider',
 		function(RestangularProvider) {
 			// point RestangularProvider.setBaseUrl to your API's URL_PREFIX

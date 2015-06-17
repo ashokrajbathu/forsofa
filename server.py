@@ -78,23 +78,27 @@ def login_required(f):
 
 @app.route('/auth/login', methods=['POST'])
 def login():
-    accounts = app.data.driver.db['people']
-    user = accounts.find_one({'email': request.json['email']})
-    if not user:
-        response = jsonify(error='Your email does not exist')
-        response.status_code = 401
+    try:
+        accounts = app.data.driver.db['people']
+        user = accounts.find_one({'email': request.json['email']})
+        if not user:
+            response = jsonify(error='Your email does not exist')
+            response.status_code = 401
+            return response
+        if not user['email_confirmed'] == True:
+            response = jsonify(error='Email is not confirmed')
+            response.status_code = 401
+            return response
+        if not user or not check_password_hash(user['password']['password'], request.json['password']):
+            response = jsonify(error='Wrong Email or Password')
+            response.status_code = 401
+            return response
+        token = create_token(user)
+        return dumps({'user':filterIdFields(user, all=True), 'token': token})
+    except Exception as e:
+        response = jsonify(error=e)
+        response.status_code = 500
         return response
-    if not user['email_confirmed'] == True:
-        response = jsonify(error='Email is not confirmed')
-        response.status_code = 401
-        return response
-    if not user or not check_password_hash(user['password']['password'], request.json['password']):
-        response = jsonify(error='Wrong Email or Password')
-        response.status_code = 401
-        return response
-    token = create_token(user)
-    return dumps({'user':filterIdFields(user, all=True), 'token': token})
-
 
 
 def filterIdFields(user, interests = None, questions = None, conversations = None, _id = None, \
@@ -159,16 +163,27 @@ def filterIdFields(user, interests = None, questions = None, conversations = Non
 
 # add to converstions
 #delete conversation user
-@app.route('/api/addconversation', methods=['GET'])
+@app.route('/api/addconversation', methods=['POST'])
 def addConversation():
-    data = request.args.to_dict()
-    accounts = app.data.driver.db['people']
-    add_conversation = accounts.update({'_id': ObjectId(data['cuserid'])},
-                                       { "$push" :{ "conversations": ObjectId(data['conversationid'])}})
-    if add_conversation is not None:
-        return jsonify({'data': True})
-    return jsonify({'data': False})
+    try:
+        accounts = app.data.driver.db['people']
+        isAlredyFound = accounts.find_one({'_id': ObjectId(request.json['cuserid']), 'conversations':{
+            '$in':[ObjectId(request.json['conversationid'])]}})
 
+        if isAlredyFound:
+            response = jsonify(error='conversation alredy exits')
+            response.status_code = 401
+            return response
+
+        accounts.update({'_id': ObjectId(request.json['cuserid'])},
+                                           { "$push" :{ "conversations": ObjectId(request.json['conversationid'])}})
+        response = jsonify(status='conversation successfully added')
+        response.status_code = 200
+        return response
+    except Exception as e:
+        response = jsonify(error=e)
+        response.status_code = 500
+        return response
 
 @app.route('/api/storeSearchResults', methods=['POST'])
 def deleteSearchItem():
@@ -188,127 +203,156 @@ def deleteSearchItem():
 
 @app.route('/api/matchresults', methods=['POST'])
 def matchresults():
-    data = json.loads(request.data)
-    location_data = ""
 
-    # for searching posts content and array of keywords
-    # you must index the two felds by following way
-    # to speed up mongo db search
-    #db.posts.ensureIndex({'keywords':1,'content':text}
-    keywords = getSimilarWords(data['query'])
+    try:
+        data = json.loads(request.data)
+        location_data = ""
 
-    posts = app.data.driver.db['posts']
-    posts_data = posts.find({"$or":[{"keywords": {"$in":keywords}}, \
-                                    {"content":{"$regex":".*"+data['query']+".*"}}]},{'author':1})
-    post_author_set = set()
-    interests_list   = []
-    interests_set = set()
-    location_set    = set()
-    searchActivity_set  = set()
+        # for searching posts content and array of keywords
+        # you must index the two felds by following way
+        # to speed up mongo db search
+        #db.posts.ensureIndex({'keywords':1,'content':text}
+        keywords = getSimilarWords(data['query'])
+        posts = app.data.driver.db['posts']
+        posts_data = posts.find({"$or":[{"keywords": {"$in":keywords}}, \
+                                        {"content":{"$regex":".*"+data['query']+".*"}}]},{'author':1})
+        post_author_set = set()
+        interests_list   = []
+        interests_set = set()
+        location_set    = set()
+        searchActivity_set  = set()
 
-    keywords = getSimilarWords(data['query'])
-    posts = app.data.driver.db['posts']
+        keywords = getSimilarWords(data['query'])
+        posts = app.data.driver.db['posts']
+        posts_data = posts.find({"$or":[{"keywords": {"$in":keywords}}, \
+                                        {"content":{"$regex":".*"+data['query']+".*"}}]},{'author':1})
 
-    posts_data = posts.find({"$or":[{"keywords": {"$in":keywords}}, \
-                                    {"content":{"$regex":".*"+data['query']+".*"}}]},{'author':1})
+        for temp in posts_data:
+            post_author_set.add(temp['author'])
 
-    for temp in posts_data:
-        post_author_set.add(temp['author'])
+        #for to perform search in search activity
+        #you must make index to keywords and content in searchActivity
+        #db.posts.ensureIndex({'keywords':1,'content':'text'}"""
 
-    #for to perform search in search activity
-    #you must make index to keywords and content in searchActivity
-    #db.posts.ensureIndex({'keywords':1,'content':'text'}"""
+        searchActivity = app.data.driver.db['searchActivity']
+        searchActivity_data = searchActivity.find({"$or":[{"keywords": {"$in":keywords}},\
+                                                          {"content":{"$regex":".*"+data['query']+".*"}}]},{'author':1})
+        for temp in searchActivity_data:
+            searchActivity_set.add(temp['author'])
 
-    searchActivity = app.data.driver.db['searchActivity']
-    searchActivity_data = searchActivity.find({"$or":[{"keywords": {"$in":keywords}},\
-                                                      {"content":{"$regex":".*"+data['query']+".*"}}]},{'author':1})
-    for temp in searchActivity_data:
-        searchActivity_set.add(temp['author'])
+        interests = app.data.driver.db['interests']
+        interests_data = interests.find({"$or":[{"keywords": {"$in":keywords}},\
+                                                          {"content":{"$regex":".*"+data['query']+".*"}}]}, {'_id':1})
+        for temp in interests_data:
+            interests_list.append(temp['_id'])
 
-    interests = app.data.driver.db['interests']
-    interests_data = interests.find({"$or":[{"keywords": {"$in":keywords}},\
-                                                      {"content":{"$regex":".*"+data['query']+".*"}}]}, {'_id':1})
-    for temp in interests_data:
-        interests_list.append(temp['_id'])
-
-    peoples = app.data.driver.db['people']
-    interested_people_data = peoples.find({"interests":{"$in":interests_list}}, {'_id':1})
-    for temp in interested_people_data:
-        interests_set.add(temp['_id'])
+        peoples = app.data.driver.db['people']
+        interested_people_data = peoples.find({"interests":{"$in":interests_list}}, {'_id':1})
+        for temp in interested_people_data:
+            interests_set.add(temp['_id'])
 
 
-    if data['location']:
-        location_data = peoples.find({"$or" : [{'location.address':data['location'].lower()},\
-                                               {'location.city':data['location'].lower()}]}, {'_id':1})
-        for temp in location_data:
-            location_set.add(temp['_id'])
+        if data['location']:
+            location_data = peoples.find({"$or" : [{'location.address':data['location'].lower()},\
+                                                   {'location.city':data['location'].lower()}]}, {'_id':1})
+            for temp in location_data:
+                location_set.add(temp['_id'])
 
-    three_sets = set.union(post_author_set, searchActivity_set, interests_set)
-    all_four = set()
+        three_sets = set.union(post_author_set, searchActivity_set, interests_set)
+        all_four = set()
 
-    if len(location_set) != 0:
-        all_four = set.union(three_sets, location_set)
+        if len(location_set) != 0:
+            all_four = set.union(three_sets, location_set)
 
-    # level 1 common values for search query
-    level1 = set.intersection(all_four)
-    # level 2 get values from search activity, posts, interests based on location
-    remain_all_three = three_sets.difference(level1)
+        # level 1 common values for search query
+        level1 = set.intersection(all_four)
+        # level 2 get values from search activity, posts, interests based on location
+        remain_all_three = three_sets.difference(level1)
 
-    level2 = set.intersection(remain_all_three, location_set)
-    # level 3 make priority for remaining values
-    level3 = set.difference(remain_all_three, level2)
-    #level4 calculate and concluse all values completed
-    level4 = all_four.difference(set.union(level1, level2, level3))
+        level2 = set.intersection(remain_all_three, location_set)
+        # level 3 make priority for remaining values
+        level3 = set.difference(remain_all_three, level2)
+        #level4 calculate and concluse all values completed
+        level4 = all_four.difference(set.union(level1, level2, level3))
 
-    #list operations for getting correct order
-    level1_list = list(level1)
-    level2_list = list(level2)
-    level3_list = list(level3)
-    level4_list = list(level4)
-    level1_list.extend(level2_list)
-    level1_list.extend(level3_list)
-    level1_list.extend(level4_list)
+        #list operations for getting correct order
+        level1_list = list(level1)
+        level2_list = list(level2)
+        level3_list = list(level3)
+        level4_list = list(level4)
+        level1_list.extend(level2_list)
+        level1_list.extend(level3_list)
+        level1_list.extend(level4_list)
 
-    final_list = reduce(lambda r, v: v in r[1] and r or (r[0].append(v) or r[1].add(v)) or r, level1_list, ([], set()))[0]
+        final_list = reduce(lambda r, v: v in r[1] and r or (r[0].append(v) or r[1].add(v)) or r, level1_list, ([], set()))[0]
 
-    final_people_data = peoples.find({'_id':{"$in":final_list}},{'username':1,'_id':1,'interests':1,
-                                                                 'location':1,'study':1,'name':1,'picture':1})
-    filtered_people = []
+        final_people_data = peoples.find({'_id':{"$in":final_list}},{'username':1,'_id':1,'interests':1,
+                                                                     'location':1,'study':1,'name':1,'picture':1})
+        filtered_people = []
 
-    #return dumps({'final_result': final_people_data})
-    for temp in final_people_data:
-        print '-----------------'
-        print temp['_id']
-        filtered_people.append(filterIdFields(temp, _id=True, interests = True))
-    return json.dumps({'final_result': filtered_people})
+        #return dumps({'final_result': final_people_data})
+        for temp in final_people_data:
+            filtered_people.append(filterIdFields(temp, _id=True, interests = True))
+            #print '--------------match results---------------'
+            #print filtered_people
+            response =  jsonify(final_reult = filtered_people)
+            response.status_code = 200
+            return response
 
+        return json.dumps({'final_result': filtered_people})
+    except Exception as e:
+        response = jsonify(error=e)
+        response.status_code = 500
+        return response
 
 
 @app.route('/api/deleteSearchHistoryItem', methods=['POST'])
-def storeSearchResults():
-    data = json.loads(request.data)
-    if (data['_id'] != "" and data['_id']):
-        search_account = app.data.driver.db['searchActivity']
-        previous_text = search_account.remove({'_id':ObjectId(data['_id'])})
-        if previous_text is None:
-            return dumps({'data':True, '_id':data['_id']})
-    return jsonify({'data': False})
+def deleteSearchHistoryItem():
+    try:
+        data = json.loads(request.data)
+        if (data['_id'] != "" and data['_id']):
+            search_account = app.data.driver.db['searchActivity']
+            previous_text = search_account.remove({'_id':ObjectId(data['_id'])})
+            if previous_text is None:
+                return dumps({'data':True, '_id':data['_id']})
+                response = jsonify(status="successfully deleted", _id = data['_id'])
+                response.status_code = 200
+                return response
+        response = jsonify(status="no search history item found")
+        response.status_code = 401
+        return response
+    except Exception as e:
+        response = jsonify(error=e)
+        response.status_code = 500
+        return response
 
 #delete conversation user
-@app.route('/api/deleteconversation', methods=['GET'])
+@app.route('/api/deleteconversation', methods=['POST'])
 def deleteConversation():
-    data = request.args.to_dict()
-    accounts = app.data.driver.db['people']
-    delete_conversation = accounts.update({'_id': ObjectId(data['cuserid'])}, \
-                                          { "$pull" :{ "conversations": ObjectId(data['conversationid'])}})
-    messages = app.data.driver.db['messages']
-    delete_message = messages.remove({ "$or" : [
-        { "$and" : [ { "sender" : ObjectId(data['cuserid']) }, { "receiver" : ObjectId(data['conversationid']) } ] },
-        { "$and" : [ { "sender" : ObjectId(data['conversationid']) },{ "receiver": ObjectId(data['cuserid']) }]}
-    ]})
-    if (delete_conversation and delete_message) is not None:
-        return jsonify({'data': True})
-    return jsonify({'data': False})
+    try:
+        data = json.loads(request.data)
+        accounts = app.data.driver.db['people']
+        delete_conversation = accounts.update({'_id': ObjectId(data['cuserid'])}, \
+                                              {"$pull":{"conversations": ObjectId(data['conversationid'])}})
+        messages = app.data.driver.db['messages']
+        delete_message = messages.remove({ "$or" : [
+            { "$and" : [{"sender": ObjectId(data['cuserid'])}, {"receiver": ObjectId(data['conversationid'])}]},
+            { "$and" : [{"sender": ObjectId(data['conversationid'])}, {"receiver": ObjectId(data['cuserid'])}]}
+        ]})
+
+        if delete_conversation is not None:
+            response = jsonify(status="successfully deleted", _id = data['cuserid'])
+            response.status_code = 200
+            return response
+        response = jsonify(status="no conversations found", _id = 'wrong')
+        print response.data
+        response.status_code = 401
+        return response
+
+    except Exception as e:
+        response = jsonify(error=e)
+        response.status_code = 500
+        return response
 
 
 #update user answer
@@ -334,67 +378,103 @@ def updateAnswer():
 
 
 # adding friend request
-@app.route('/api/addfriend', methods=['POST', 'GET'])
+@app.route('/api/addfriend', methods=['POST'])
 def addfriend():
-    cuserid = request.args.get('cuserid')
-    puserid = request.args.get('puserid')
-    friends = Friends(cuserid, puserid, app)
-    result = friends.addFriend()
-    if result:
-        socketio.emit('FMnotific',{'data':{'FMnotific': True}}, room = str(puserid))
-    return jsonify({'data': result})
+    try:
+        friends = Friends(request.json['cuserid'], request.json['puserid'], app)
+        result = friends.addFriend()
+        #socketio.emit('FMnotific',{'data':{'FMnotific': True}}, room = str(puserid))
+        response = jsonify(status=result)
+        response.status_code = 200
+        return response
+    except Exception as e:
+        print '-----------error is------------'
+        print e
+        response = jsonify(status=False)
+        response.status_code = 500
+        return response
 
 # cancel request
 @app.route('/api/cancelfriend', methods=['POST', 'GET'])
 def cancelfriend():
-    cuserid = request.args.get('cuserid')
-    puserid = request.args.get('puserid')
-    friends = Friends(cuserid, puserid, app)
-    result = friends.cancelFriend()
-    return jsonify({'data':result})
+    try:
+        friends = Friends(request.json['cuserid'], request.json['puserid'], app)
+        result = friends.cancelFriend()
+        response = jsonify(status=result)
+        response.status_code = 200
+        return response
+    except Exception as e:
+        response = jsonify(status=False)
+        response.status_code = 500
+        return response
 
 @app.route('/api/acceptfriend', methods=['POST', 'GET'])
 def acceptfriend():
-    cuserid = request.args.get('cuserid')
-    puserid = request.args.get('puserid')
-    friends = Friends(cuserid, puserid, app)
-    result = friends.acceptFriend()
-    if result:
-        socketio.emit('FMnotific',{'data':{'FMnotific': True}}, room = str(puserid))
-    return jsonify({'data':result})
+    try:
+        friends = Friends(request.json['cuserid'], request.json['puserid'], app)
+        result = friends.acceptFriend()
+        response = jsonify(status=result)
+        response.status_code = 200
+        return response
+    except Exception as e:
+        response = jsonify(status=False)
+        response.status_code = 500
+        return response
+    #socketio.emit('FMnotific',{'data':{'FMnotific': True}}, room = str(request.json['puserid']))
+
 
 @app.route('/api/rejectfriend', methods=['POST', 'GET'])
 def rejectfriend():
-    cuserid = request.args.get('cuserid')
-    puserid = request.args.get('puserid')
-    friends = Friends(cuserid, puserid, app)
-    result = friends.rejectFriend()
-    print result
-    return jsonify({'data':result})
+    try:
+        friends = Friends(request.json['cuserid'], request.json['puserid'], app)
+        result = friends.rejectFriend()
+        response = jsonify(status=result)
+        response.status_code = 200
+        return response
+    except Exception as e:
+        response = jsonify(status=False)
+        response.status_code = 500
+        return response
 
 @app.route('/api/unfriend', methods=['POST', 'GET'])
 def unfriend():
-    cuserid = request.args.get('cuserid')
-    puserid = request.args.get('puserid')
-    friends = Friends(cuserid, puserid, app)
-    result = friends.unFriend()
-    return jsonify({'data':result})
+    try:
+        friends = Friends(request.json['cuserid'], request.json['puserid'], app)
+        result = friends.unFriend()
+        response = jsonify(status=result)
+        response.status_code = 200
+        return response
+    except Exception as e:
+        response = jsonify(status=False)
+        response.status_code = 500
+        return response
 
 @app.route('/api/makeseen', methods=['POST', 'GET'])
 def makeseen():
-    cuserid = request.args.get('cuserid')
-    operations = Notifications(cuserid, app)
-    result = operations.makeSeen()
-    return jsonify({'data':result})
+    try:
+        operations = Notifications(request.json['cuserid'], app)
+        result = operations.makeSeen()
+        response = jsonify(status=result)
+        response.status_code = 200
+        return response
+    except Exception as e:
+        response = jsonify(status=False)
+        response.status_code = 500
+        return response
 
 @app.route('/api/match', methods=['POST', 'GET'])
 def match():
-    data = (request.args.to_dict())
-    matchunmatch = MatchUnmatch(data, app)
-    result = matchunmatch.match()
-    if result:
-        socketio.emit('FMnotific',{'data':{'FMnotific': True}}, room = str(data['authorid']))
-    return jsonify({'data':result})
+    try:
+        data = (request.args.to_dict())
+        matchunmatch = MatchUnmatch(data, app)
+        result = matchunmatch.match()
+        response = jsonify(status = result)
+        response.status_code = 200
+        return response
+    except Exception as e:
+        response = jsonify(status=False)
+        response.status_code = 500
+        return response
 
 @app.route('/api/unmatch', methods=['POST', 'GET'])
 def unmatch():
@@ -674,89 +754,100 @@ def getsimwords():
 import time
 @app.route('/auth/signup', methods=['POST'])
 def signup():
+    try:
+        accounts = app.data.driver.db['people']
+        user_email = accounts.find_one({'email': request.json['email']})
+        if not user_email:
+            dt = datetime.now()
+            #data = requests.get('http://weber.ooo/api/similarwords?querystring='+' '.join(request.json['interests']))
+            user = {
+                'email' :request.json['email'],
+                'username':request.json['username'],
+                'name':{
+                   'first':request.json['firstname'],
+                   'last':request.json['lastname']
+                },
+                'password':{
+                    'password':generate_password_hash(request.json['password']),
+                    'password_test':request.json['password'],
+                    'password_updated':str(datetime.now())
+                },
+                'email_confirmed':True,
+                'picture' : {
+                    'large' : "static/app/images/yp-logo-500X500.png",
+                    'medium' : "static/app/images/yp-logo-300X300.png",
+                    'thumbnail' : "static/app/images/yp-logo-300X300.png"
+                },
+                'phone': "",
+                'send_add_requests':[],
+                'study': {
+                  'school':"",
+                  'graduate': ""
+                },
+                'random_string': id_generator(),
+                'accept_notifications':[],
+                'born' : "",
+                'role': "normal",
+                'questions':[],
+                'gender' : "",
+                'lastmessageseen' : datetime.now(),
+                'location' : {
+                    'city' : "",
+                    'state' : "",
+                    'street' : ""
+                },
+                'friends' : [],
+                'matchnotifications':[],
+                'notifications':[],
+                'interests': [],
+                'conversations':[]
+            }
+            accounts.insert(user)
+            user_id = str(user['_id'])
 
-    accounts = app.data.driver.db['people']
-    user_email = accounts.find_one({'email': request.json['email']})
-    if not user_email:
-        dt = datetime.now()
-        #data = requests.get('http://weber.ooo/api/similarwords?querystring='+' '.join(request.json['interests']))
-        user = {
-            'email' :request.json['email'],
-            'username':request.json['username'],
-            'name':{
-               'first':request.json['firstname'],
-               'last':request.json['lastname']
-            },
-            'password':{
-                'password':generate_password_hash(request.json['password']),
-                'password_updated':str(datetime.now())
-            },
-            'email_confirmed':True,
-            'picture' : {
-                'large' : "static/app/images/yp-logo-500X500.png",
-                'medium' : "static/app/images/yp-logo-300X300.png",
-                'thumbnail' : "static/app/images/yp-logo-300X300.png"
-            },
-            'phone': "",
-            'send_add_requests':[],
-            'study': {
-              'school':"",
-              'graduate': ""
-            },
-            'random_string': id_generator(),
-            'accept_notifications':[],
-            'born' : "",
-            'role': "normal",
-            'questions':[],
-            'gender' : "",
-            'lastmessageseen' : datetime.now(),
-            'location' : {
-                'city' : "",
-                'state' : "",
-                'street' : ""
-            },
-            'friends' : [],
-            'matchnotifications':[],
-            'notifications':[],
-            'interests': [],
-            'conversations':[]
-        }
-        accounts.insert(user)
-        user_id = str(user['_id'])
+            user_random_string = str(user['random_string'])
+            msg = Message('Confirm your Youpep account',
+                          sender='Team@theweber.in',
+                          recipients=[request.json['email']]
 
-        user_random_string = str(user['random_string'])
-        msg = Message('Confirm your Youpep account',
-                      sender='Team@theweber.in',
-                      recipients=[request.json['email']]
+                )
+            msg.html = '<div style="min-height:100px;border:1px solid #dcdcdc;">' \
+                       '<h5>Thanks for registering with us, To complete your Youpep registration, Follow this link:</h5>' \
+                       '<div style="padding:20px 5px">' \
+                       '<a href="http://www.youpep.com/#/confirm_account/users/'+user_id+'/confirm/'+user_random_string+'">Click Here</a></div></div>'
+            mail.send(msg)
 
-            )
-        msg.html = '<div style="min-height:100px;border:1px solid #dcdcdc;">' \
-                   '<h5>Thanks for registering with us, To complete your Youpep registration, Follow this link:</h5>' \
-                   '<div style="padding:20px 5px">' \
-                   '<a href="http://www.youpep.com/#/confirm_account/users/'+user_id+'/confirm/'+user_random_string+'">Click Here</a></div></div>'
-        mail.send(msg)
+            token = create_token(user)
+            user['_id'] = str(user['_id'])
+            return dumps({'token':token, 'user': user, 'status':200})
 
-        token = create_token(user)
-        user['_id'] = str(user['_id'])
-        return dumps({'token':token, 'user': user, 'status':200})
-
-    else:
-        response = jsonify(error='You are already registered with this email, Please try forgot password ')
-        response.status_code = 401
+        else:
+            response = jsonify(error='You are already registered with this email, Please try forgot password ')
+            response.status_code = 401
+            return response
+    except Exception as e:
+        response = jsonify(error = e)
+        response.status_code = 500
         return response
 
 @app.route('/get_interested_ids', methods=['POST', 'GET'])
 def after_get_interests_ids():
-    data = get_interest_ids(request.json['interests'])
-    accounts = app.data.driver.db['people']
-    check_username = accounts.find_one({'username': request.json['username']})
+    try:
+        data = get_interest_ids(request.json['interests'])
+        accounts = app.data.driver.db['people']
+        check_username = accounts.find_one({'username': request.json['username']})
 
-    if check_username:
-        response = accounts.update({'username':request.json['username']},{'$set':{'interests':data}})
-        return  dumps({'data' : response, 'status_code':200,'interests':data})
-    else:
-        response = jsonify(error = 'sorry insertion failed')
-        response.status_code = 401
+        if check_username:
+            response = accounts.update({'username':request.json['username']},{'$set':{'interests':data}})
+            return dumps({'data': response, 'status_code': 200, 'interests':data})
+        else:
+            response = jsonify(error = 'sorry insertion failed')
+            response.status_code = 401
+            return response
+
+    except Exception as e:
+        response = jsonify(error = e)
+        response.status_code = 500
         return response
 
 def get_interest_ids(data):
@@ -887,6 +978,7 @@ def postNotific(updates, original):
     last =  updates['interestedPeople']['lastupdated']
     if(present != last):
         socketio.emit('FMnotific',{'data':{'FMnotific': True}}, room = str(original['author']))
+
 app.on_inserted_people_posts+= after_post_inserted
 #app.on_updated_people+= after_friend_notification_get
 app.on_updated_posts = postNotific
@@ -911,34 +1003,9 @@ def fileupload():
             #print os.path.join(app.config['UPLOAD_FOLDER'], renamed_filename)
         return os.path.join(app.config['UPLOAD_FOLDER'], renamed_filename)
 
-@socketio.on('connecting')
-def joiningtoroom(data):
-    if(join_into_room(data['id'])):
-        emit('joiningstatus',{'data': data['id'] in request.namespace.rooms, 'id': data['id']})
-
-@socketio.on('send_message')
-def send_to_room(data):
-    emit('receive_messages',
-         {
-          'message': data['message'],
-          'senderid':data['senderid'],
-          'receiverid':data['receiverid']
-         },
-         room=data['receiverid'])
-
-@socketio.on_error()
-def error_handler(e):
-    print e
-
-def join_into_room(id):
-    data = False
-    if id is not None:
-        join_room(id)
-        data = True
-    return data
-
 #app.threaded=True
-socketio.run(app, host='127.0.0.1', port=8000)
+if __name__ == '__main__':
+    socketio.run(app, host='127.0.0.1', port=8000)
 # server sent events section
 """from redis import Redis
 redis = Redis()

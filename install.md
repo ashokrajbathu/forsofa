@@ -69,3 +69,15 @@ http://flask-socketio.readthedocs.org/en/latest/#flask.ext.socketio.SocketIO.run
 for ssh generation to git hub
 =============================
 https://help.github.com/articles/generating-ssh-keys/
+
+problem while install karma
+===================================
+while starting karma locally getting following error.
+/usr/bin/env: node: No such file or directory
+
+following link command changes create a link for nodejs file
+sudo ln -s /usr/bin/nodejs /usr/bin/node
+
+npm install karma
+or
+npm install -g karma

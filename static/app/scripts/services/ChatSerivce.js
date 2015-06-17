@@ -333,15 +333,28 @@ angular.module('weberApp')
             if(this.currentuser.conversations.indexOf(id) == -1 &&
                this.currentuser.friends.indexOf(id) == -1){
                    this.currentuser.conversations.push(id);
-                   Restangular.one('addconversation').get({
-                    cuserid : this.currentuser._id,
-                    conversationid : id,
-                    seed:Math.random()
-                  }).then(function(data){
-                      //console.log('add conversation-->', data)
-                  }.bind(this));
-            }
+                   var self = this;
+                   var req = {
+                        method: 'POST',
+                        url: '/api/addconversation',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        data: {
+                                cuserid : self.currentuser._id,
+                                conversationid : id,
+                                seed:Math.random()
+                        }
+                   }
+
+                   $http(req).success(function (data) {
+                        console.log('successfully added to conversations', data)
+                   });
+
+
+               }
         }
+
 
         ChatActivity.prototype.deleteConversation = function(id){
             if(this.currentuser.conversations.indexOf(id) !== -1){

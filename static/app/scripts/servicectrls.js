@@ -726,7 +726,7 @@ angular.module('weberApp')
     .controller('indexCtrl', function($auth,$scope, $window, CurrentUser,$route,$rootScope,
                                       $alert,$timeout,InstanceSearchHistory, PostService,
                                       Friends,$location, $http, Restangular,ChatActivity,UserService,
-                                      CurrentUser1,SearchActivity, friendsActivity,$socket) {
+                                      CurrentUser1,SearchActivity, friendsActivity, socket) {
 
         $scope.isAuthenticated = function() {
             return $auth.isAuthenticated();
@@ -740,17 +740,24 @@ angular.module('weberApp')
         $scope.PostService = PostService;
         $scope.chatdivnotification = [];
 
+
         // socket functions execution
         function socket_operations(){
 
-            $socket.emit('connecting', {id:$rootScope.currentUser._id});
+            socket.emit('connecting', {id:$rootScope.currentUser._id});
 
-            $socket.on('joiningstatus', function(data) {
+            socket.on('joiningstatus', function(data) {
                 console.log('connected status with following data==>', data)
             });
 
-            $socket.on('FMnotific', function(data){
-                if(data.data.FMnotific){
+             socket.on('avaiblerooms', function(data) {
+                console.log('availble rooms  ==>', data)
+            });
+
+           socket.on('friend_notification', function(data){
+                console.log('--------------', data)
+                if(data.status){
+                    console.log('friend request got with')
                     Restangular.one('people', $rootScope.currentUser._id).get({seed: Math.random()})
                     .then(function(user) {
                             $rootScope.currentUser = user;
@@ -760,8 +767,8 @@ angular.module('weberApp')
                 }
             });
 
-             $socket.on('receive_messages', function(msg) {
-                //console.log('message received', msg)
+             socket.on('receive_messages', function(msg) {
+                console.log('message received', msg)
                 var new_message = {};
                 var details = JSON.parse(sessionStorage.getItem(msg.senderid));
                 if($rootScope.currentUser._id == msg.senderid){
@@ -832,12 +839,13 @@ angular.module('weberApp')
 
                 $rootScope.chatactivity.loadMessages($rootScope.currentUser._id, room_user._id, json);
                 sessionStorage.setItem(room_user._id, JSON.stringify(json));
-                $socket.emit('connect', {data:room_user._id});
+                socket.emit('join_to_room', {id:room_user._id});
                 // load messages into new open chat room
             };
          }
          // send message while pressing enter in room
         $scope.send_message = function(Recept){
+            console.log('sending message')
             var text = this.SendMessage;
             this.SendMessage = null;
             if(text){
@@ -865,7 +873,7 @@ angular.module('weberApp')
 
                 //$scope.chatactivity.messages = data;
 
-                $socket.emit('send_message', {receiverid: Recept, senderid :$rootScope.currentUser._id  ,message: text});
+                socket.emit('send_message', {receiverid: Recept, senderid :$rootScope.currentUser._id  ,message: text});
                 $rootScope.chatactivity.sendMessage(Recept, text);
             }else{
                 return false;
@@ -884,7 +892,7 @@ angular.module('weberApp')
         $scope.send_feedback = function(){
             console.log('data')
             sessionStorage.setItem(room_user._id, JSON.stringify(json));
-            $socket.emit('connect', {data:room_user._id});
+            //socket.emit('connect', {data:room_user._id});
         };
 
 
@@ -1488,7 +1496,8 @@ angular.module('weberApp')
 
     //end of CssJavascript code
 
-});'use strict';
+});
+'use strict';
 /**
  * @ngdoc function
  * @name weberApp.controller:MainCtrl
@@ -1497,9 +1506,9 @@ angular.module('weberApp')
  * Controller of the weberApp
  */
 angular.module('weberApp')
-	.controller('MainCtrl', function($scope, $timeout, $auth, $rootScope, $socket, Restangular, InfinitePosts,questions,
+	.controller('MainCtrl', function($scope, $timeout, $auth, $rootScope,Restangular, InfinitePosts,questions,
 	                                $alert, $http, CurrentUser,sortIListService, InterestsService,$location,
-	                                UserService, fileUpload, MatchButtonService) {
+	                                UserService, fileUpload, MatchButtonService, socket) {
 
 	    $scope.show_none_posts = false;
 	    $scope.load_main = $timeout(function(){
@@ -1589,7 +1598,7 @@ angular.module('weberApp')
                             return false;
                         }
                     };
-                    $socket.on('postNotifications', function(data){
+                    socket.on('postNotifications', function(data){
 
                         if(data.data.postnotific){
                             if($rootScope.currentUser.friends.indexOf(data.author) == -1){
@@ -1895,7 +1904,7 @@ angular.module('weberApp')
  */
 angular.module('weberApp')
     .controller('WeberSearchCtrl', function($scope, $timeout, $q, $auth, Restangular,$route,$window, InterestsService,
-	 										InfinitePosts, $alert, $http,$location,$socket,
+	 										InfinitePosts, $alert, $http,$location,
 	 										CurrentUser, UserService,CurrentUser1,$rootScope,
 	 										SearchActivity, $routeParams, MatchMeResults) {
 	 	$scope.show_no_results = false;
@@ -2200,6 +2209,16 @@ angular.module('weberApp')
  * Service in the weberApp.
  */
 angular.module('weberApp')
+
+
+        .factory('socket', function (socketFactory) {
+          var myIoSocket = io.connect('http://localhost:8080/');
+
+          var socket = socketFactory({
+            ioSocket: myIoSocket
+          });
+          return socket;
+        })
 
        .factory('questions', function($http, Restangular,$auth) {
 
@@ -3119,55 +3138,120 @@ angular.module('weberApp')
 	})
 	.service('Friends', function($http, Restangular) {
 
-		this.addFriend = function(cuserid, puserid) {
-		    return Restangular.one('addfriend').get({
-		        cuserid : cuserid,
-		        puserid : puserid,
-		        seed:Math.random()
-		    });
-		}
+         this.addFriend = function(cuserid, puserid){
+             var self = this;
+             console.log('clicked on add friend')
+                var req = {
+                    method: 'POST',
+                    url: '/api/addfriend',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    data: {
+                            cuserid : cuserid,
+                            puserid : puserid,
+                            seed:Math.random()
+                    }
+                }
 
-		this.cancelRequest = function(cuserid, puserid){
-		    //console.log(cuserid, puserid)
-		    return Restangular.one('cancelfriend').get({
-		        cuserid : cuserid,
-		        puserid : puserid,
-		        seed:Math.random()
-		    });
+                return $http(req);
+         }
 
-		}
 
-		this.acceptRequest = function(cuserid, puserid){
-		    return Restangular.one('acceptfriend').get({
-		        cuserid : cuserid,
-		        puserid : puserid,
-		        seed:Math.random()
-		    });
+		 this.cancelRequest = function(cuserid, puserid){
+             var self = this;
+                var req = {
+                    method: 'POST',
+                    url: '/api/cancelfriend',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    data: {
+                            cuserid : cuserid,
+                            puserid : puserid,
+                            seed:Math.random()
+                    }
+                }
 
-		}
+                return $http(req);
+         }
 
-		this.rejectRequest = function(cuserid, puserid){
-		    return Restangular.one('rejectfriend').get({
-		        cuserid : cuserid,
-		        puserid : puserid,
-		        seed : Math.random()
-		    });
-		}
+		 this.acceptRequest = function(cuserid, puserid){
+             var self = this;
+                var req = {
+                    method: 'POST',
+                    url: '/api/acceptfriend',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    data: {
+                            cuserid : cuserid,
+		                    puserid : puserid,
+		                    seed:Math.random()
+                    }
+                }
+                return $http(req);
+         }
 
-		this.unFreind = function(cuserid, puserid){
-		    return Restangular.one('unfriend').get({
-		        cuserid : cuserid,
-		        puserid : puserid,
-		        seed : Math.random()
-		    });
-		}
+         this.rejectRequest = function(cuserid, puserid){
+             var self = this;
+                var req = {
+                    method: 'POST',
+                    url: '/api/rejectfriend',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    data: {
+                            cuserid : cuserid,
+		                    puserid : puserid,
+		                    seed:Math.random()
+                    }
+                }
+                return $http(req);
+         }
 
-		this.makeSeen = function(cuserid){
-		    return Restangular.one('makeseen').get({
-		        cuserid : cuserid,
-		        seed : Math.random()
-		    });
-		}
+
+         this.unFreind = function(cuserid, puserid){
+             var self = this;
+                var req = {
+                    method: 'POST',
+                    url: '/api/unfriend',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    data: {
+                            cuserid : cuserid,
+		                    puserid : puserid,
+		                    seed:Math.random()
+                    }
+                }
+                return $http(req);
+         }
+
+		  this.makeSeen = function(cuserid){
+             var self = this;
+                var req = {
+                    method: 'POST',
+                    url: '/api/makeseen',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    data: {
+                            cuserid : cuserid,
+		                    seed:Math.random()
+                    }
+                }
+                return $http(req);
+         }
+	})
+	.service('socketOperations', function($http, Restangular, socket) {
+
+         this.emitSocket = function(property, roomId){
+             socket.emit(property, {id:roomId});
+             return 'hai'
+         }
+
+
 	});angular.module('weberApp')
 
     .factory('ChatActivity', function($http, Restangular,$auth, UserService) {
@@ -3503,15 +3587,28 @@ angular.module('weberApp')
             if(this.currentuser.conversations.indexOf(id) == -1 &&
                this.currentuser.friends.indexOf(id) == -1){
                    this.currentuser.conversations.push(id);
-                   Restangular.one('addconversation').get({
-                    cuserid : this.currentuser._id,
-                    conversationid : id,
-                    seed:Math.random()
-                  }).then(function(data){
-                      //console.log('add conversation-->', data)
-                  }.bind(this));
-            }
+                   var self = this;
+                   var req = {
+                        method: 'POST',
+                        url: '/api/addconversation',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        data: {
+                                cuserid : self.currentuser._id,
+                                conversationid : id,
+                                seed:Math.random()
+                        }
+                   }
+
+                   $http(req).success(function (data) {
+                        console.log('successfully added to conversations', data)
+                   });
+
+
+               }
         }
+
 
         ChatActivity.prototype.deleteConversation = function(id){
             if(this.currentuser.conversations.indexOf(id) !== -1){
@@ -3658,7 +3755,7 @@ angular.module('weberApp')
 
 
 .directive('cancelrequest', function ($compile, $timeout, CurrentUser, Restangular, $rootScope,
-                                        $routeParams, $route,friendsActivity, Friends) {
+                                        $routeParams, $route,friendsActivity, Friends, socket,socketOperations) {
     return {
         restrict: 'E',
         replace: true,
@@ -3674,7 +3771,11 @@ angular.module('weberApp')
                     $compile($element.contents())($scope);
                     var data = Friends.addFriend($rootScope.currentUser._id, profileuser_id);
                     data.then(function(data){
-                        if(data.data && !(fromRequest)){
+                        console.log('status of friend request', data)
+                        if(data.status && !(fromRequest)){
+
+                             socketOperations.emitSocket('friend_request_sent', profileuser_id);
+
                              var html ='<addfriend><button ng-click="frndcancelrequest(\''+profileuser_id+'\', 0)"'
                              +'class="btn  btn-sm btn-primary">cancel request</button></addfriend>';
                              e =$compile(html)($scope);
@@ -3724,7 +3825,7 @@ angular.module('weberApp')
                    var data = Friends.cancelRequest($rootScope.currentUser._id, profile_user_id);
 
                    data.then(function(data){
-                        if(data.data && !(requestFrom)){
+                        if(data.status && !(requestFrom)){
                              var html ='<cancelrequest><button  ng-click="frndaddrequest( \''+profile_user_id+'\', 0)"'
                              +'class="btn btn-sm btn-primary">Add Friend</button></cancelrequest>';
                              e =$compile(html)($scope);
@@ -3745,43 +3846,7 @@ angular.module('weberApp')
                              $route.reload();
                         }
                     });
-                    /*$scope.load_add_friend = $timeout(function() {
 
-                        if(profileuser !== 'undefined'){
-                            $scope.profileuser = profileuser;
-                        }
-
-                        var html = '<image src="/static/app/images/pleasewait.gif" alt="no image found" style="position:absolute">';
-                        var e = null;
-                        $element.html(html);
-                        $compile($element.contents())($scope);
-
-                        var data = Friends.cancelRequest($scope.user._id, $scope.profileuser._id);
-                        //console.log('data----------->', data)
-                        data.then(function(data){
-                            //console.log('data123--------->', data)
-                            if(data.data){
-                                 var html ='<cancelrequest><button  ng-click="frndaddrequest(\''+id+'\', \''+profileuser+'\')"  class="btn btn-primary btn-sm">AddFriend</button></cancelrequest>';
-                                 e =$compile(html)($scope);
-                                 $element.replaceWith(e);
-                                    console.log("---------------")
-                                    for(var temp in $scope.currentUser.send_add_requests){
-                                        if($scope.currentUser.send_add_requests[temp]._id == id){
-                                            $scope.currentUser.send_add_requests.splice(temp, 1);
-                                            return;
-                                        }
-
-                                    }
-
-                                 //$route.reload();
-                            }else{
-                                 var html ='<b>unable to process</b>';
-                                 e =$compile(html)($scope);
-                                 $element.replaceWith(e);
-                                 $route.reload();
-                            }
-                        });
-                    },2000);*/
                    },2000);
                }
          }
@@ -3789,7 +3854,7 @@ angular.module('weberApp')
 })
 
 .directive('acceptreject', function ($compile, $timeout, $window, CurrentUser, Restangular,$route, $routeParams,
-                    Friends, $rootScope, friendsActivity) {
+                    Friends, $rootScope, friendsActivity, socket) {
     return {
         restrict: 'E',
         replace: true,
@@ -3806,7 +3871,8 @@ angular.module('weberApp')
                     //console.log("----------------------->", $rootScope.currentUser._id, profile_user_id)
                     var data = Friends.acceptRequest($rootScope.currentUser._id, profile_user_id);
                     data.then(function(data){
-                        if(data.data){
+                        if(data.status){
+                             socketOperations.emitSocket('friend_request_sent', profile_user_id);
                              if(navbar_request){
                                 html = '<b> friends </b>';
                                 e =$compile(html)($scope);

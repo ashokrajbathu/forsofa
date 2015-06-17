@@ -57,7 +57,7 @@ angular.module('weberApp')
 
 
 .directive('cancelrequest', function ($compile, $timeout, CurrentUser, Restangular, $rootScope,
-                                        $routeParams, $route,friendsActivity, Friends) {
+                                        $routeParams, $route,friendsActivity, Friends, socket,socketOperations) {
     return {
         restrict: 'E',
         replace: true,
@@ -73,7 +73,11 @@ angular.module('weberApp')
                     $compile($element.contents())($scope);
                     var data = Friends.addFriend($rootScope.currentUser._id, profileuser_id);
                     data.then(function(data){
-                        if(data.data && !(fromRequest)){
+                        console.log('status of friend request', data)
+                        if(data.status && !(fromRequest)){
+
+                             socketOperations.emitSocket('friend_request_sent', profileuser_id);
+
                              var html ='<addfriend><button ng-click="frndcancelrequest(\''+profileuser_id+'\', 0)"'
                              +'class="btn  btn-sm btn-primary">cancel request</button></addfriend>';
                              e =$compile(html)($scope);
@@ -123,7 +127,7 @@ angular.module('weberApp')
                    var data = Friends.cancelRequest($rootScope.currentUser._id, profile_user_id);
 
                    data.then(function(data){
-                        if(data.data && !(requestFrom)){
+                        if(data.status && !(requestFrom)){
                              var html ='<cancelrequest><button  ng-click="frndaddrequest( \''+profile_user_id+'\', 0)"'
                              +'class="btn btn-sm btn-primary">Add Friend</button></cancelrequest>';
                              e =$compile(html)($scope);
@@ -144,43 +148,7 @@ angular.module('weberApp')
                              $route.reload();
                         }
                     });
-                    /*$scope.load_add_friend = $timeout(function() {
 
-                        if(profileuser !== 'undefined'){
-                            $scope.profileuser = profileuser;
-                        }
-
-                        var html = '<image src="/static/app/images/pleasewait.gif" alt="no image found" style="position:absolute">';
-                        var e = null;
-                        $element.html(html);
-                        $compile($element.contents())($scope);
-
-                        var data = Friends.cancelRequest($scope.user._id, $scope.profileuser._id);
-                        //console.log('data----------->', data)
-                        data.then(function(data){
-                            //console.log('data123--------->', data)
-                            if(data.data){
-                                 var html ='<cancelrequest><button  ng-click="frndaddrequest(\''+id+'\', \''+profileuser+'\')"  class="btn btn-primary btn-sm">AddFriend</button></cancelrequest>';
-                                 e =$compile(html)($scope);
-                                 $element.replaceWith(e);
-                                    console.log("---------------")
-                                    for(var temp in $scope.currentUser.send_add_requests){
-                                        if($scope.currentUser.send_add_requests[temp]._id == id){
-                                            $scope.currentUser.send_add_requests.splice(temp, 1);
-                                            return;
-                                        }
-
-                                    }
-
-                                 //$route.reload();
-                            }else{
-                                 var html ='<b>unable to process</b>';
-                                 e =$compile(html)($scope);
-                                 $element.replaceWith(e);
-                                 $route.reload();
-                            }
-                        });
-                    },2000);*/
                    },2000);
                }
          }
@@ -188,7 +156,7 @@ angular.module('weberApp')
 })
 
 .directive('acceptreject', function ($compile, $timeout, $window, CurrentUser, Restangular,$route, $routeParams,
-                    Friends, $rootScope, friendsActivity) {
+                    Friends, $rootScope, friendsActivity, socket) {
     return {
         restrict: 'E',
         replace: true,
@@ -205,7 +173,8 @@ angular.module('weberApp')
                     //console.log("----------------------->", $rootScope.currentUser._id, profile_user_id)
                     var data = Friends.acceptRequest($rootScope.currentUser._id, profile_user_id);
                     data.then(function(data){
-                        if(data.data){
+                        if(data.status){
+                             socketOperations.emitSocket('friend_request_sent', profile_user_id);
                              if(navbar_request){
                                 html = '<b> friends </b>';
                                 e =$compile(html)($scope);

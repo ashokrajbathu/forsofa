@@ -8,6 +8,16 @@
  */
 angular.module('weberApp')
 
+
+        .factory('socket', function (socketFactory) {
+          var myIoSocket = io.connect('http://localhost:8080/');
+
+          var socket = socketFactory({
+            ioSocket: myIoSocket
+          });
+          return socket;
+        })
+
        .factory('questions', function($http, Restangular,$auth) {
 
         var questions = function(currentuser){
@@ -271,12 +281,29 @@ angular.module('weberApp')
 		};
 
 		this.match = function(authorid, postid, cuserid){
+
 		    return Restangular.one('match').get({
 		        cuserid : cuserid,
 		        authorid : authorid,
 		        postid: postid,
 		        seed:Math.random()
 		    });
+
+
+             var req = {
+                method: 'POST',
+                url: '/api/match',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                        cuserid : cuserid,
+                        authorid : authorid,
+                        postid: postid,
+                        seed:Math.random()
+                }
+             }
+                return $http(req);
 		};
 
 		this.unmatch = function(authorid, postid, cuserid){

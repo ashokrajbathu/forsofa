@@ -9,7 +9,7 @@
  */
 angular.module('weberApp')
     .controller('WeberSearchCtrl', function($scope, $timeout, $q, $auth, Restangular,$route,$window, InterestsService,
-	 										InfinitePosts, $alert, $http,$location,$socket,
+	 										InfinitePosts, $alert, $http,$location,
 	 										CurrentUser, UserService,CurrentUser1,$rootScope,
 	 										SearchActivity, $routeParams, MatchMeResults) {
 	 	$scope.show_no_results = false;
