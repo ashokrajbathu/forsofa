@@ -281,15 +281,6 @@ angular.module('weberApp')
 		};
 
 		this.match = function(authorid, postid, cuserid){
-
-		    return Restangular.one('match').get({
-		        cuserid : cuserid,
-		        authorid : authorid,
-		        postid: postid,
-		        seed:Math.random()
-		    });
-
-
              var req = {
                 method: 'POST',
                 url: '/api/match',
@@ -298,21 +289,30 @@ angular.module('weberApp')
                 },
                 data: {
                         cuserid : cuserid,
-                        authorid : authorid,
-                        postid: postid,
-                        seed:Math.random()
+		                authorid : authorid,
+		                postid: postid,
+		                seed:Math.random()
                 }
              }
                 return $http(req);
 		};
 
 		this.unmatch = function(authorid, postid, cuserid){
-                return Restangular.one('unmatch').get({
-		        cuserid : cuserid,
-		        authorid : authorid,
-		        postid: postid,
-		        seed:Math.random()
-		    });
+
+		    var req = {
+                method: 'POST',
+                url: '/api/unmatch',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                        cuserid : cuserid,
+		                authorid : authorid,
+		                postid: postid,
+		                seed:Math.random()
+                }
+            }
+            return $http(req);
 		};
 
 	})
