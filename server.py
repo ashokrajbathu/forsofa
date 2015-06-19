@@ -19,7 +19,7 @@ import string
 from friendRequests import Friends, Notifications, MatchUnmatch
 import logging
 from bson.json_util import dumps
-
+import pymongo
 
 logging.basicConfig(filename='/var/log/weber_error.log', format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p')
 
@@ -293,13 +293,10 @@ def matchresults():
         #return dumps({'final_result': final_people_data})
         for temp in final_people_data:
             filtered_people.append(filterIdFields(temp, _id=True, interests = True))
-            #print '--------------match results---------------'
-            #print filtered_people
-            #response =  jsonify(final_result = filtered_people)
-            #response.status_code = 200
-            #return response
+        response = jsonify({'final_result': filtered_people})
+        response.status_code = 200
+        return response
 
-        return json.dumps({'final_result': filtered_people})
     except Exception as e:
         response = jsonify(error=e)
         response.status_code = 500
@@ -320,6 +317,27 @@ def deleteSearchHistoryItem():
                 return response
         response = jsonify(status="no search history item found")
         response.status_code = 401
+        return response
+    except Exception as e:
+        response = jsonify(error=e)
+        response.status_code = 500
+        return response
+
+def serialize_data(data):
+    serialized_data = []
+    for temp in data:
+         serialized_data.append(str(temp))
+    return serialized_data
+
+@app.route('/api/get-chat-users', methods=['POST'])
+def get_chat_users():
+    try:
+        messages = app.data.driver.db['messages']
+        data = messages.find({ "$or" : [{"sender": ObjectId(request.json['sender_id'])},
+                                        {"receiver": ObjectId(request.json['sender_id'])}]})\
+            .sort("message_created", pymongo.ASCENDING).distinct("receiver")
+        response = jsonify(chat_users=serialize_data(data))
+        response.status_code = 200
         return response
     except Exception as e:
         response = jsonify(error=e)
@@ -356,7 +374,7 @@ def deleteConversation():
 
 
 #update user answer
-@app.route('/api/updateAnswer', methods=['POST', 'GET'])
+"""@app.route('/api/updateAnswer', methods=['POST', 'GET'])
 def updateAnswer():
     print '----------update answer---------'
     accounts = app.data.driver.db['people']
@@ -373,7 +391,7 @@ def updateAnswer():
                                                 }
                                 }
                     })
-        return jsonify({'data':True})
+        return jsonify({'data':True})"""
 
 
 
@@ -388,14 +406,12 @@ def addfriend():
         response.status_code = 200
         return response
     except Exception as e:
-        print '-----------error is------------'
-        print e
         response = jsonify(status=False)
         response.status_code = 500
         return response
 
 # cancel request
-@app.route('/api/cancelfriend', methods=['POST', 'GET'])
+@app.route('/api/cancelfriend', methods=['POST'])
 def cancelfriend():
     try:
         friends = Friends(request.json['cuserid'], request.json['puserid'], app)
@@ -408,7 +424,7 @@ def cancelfriend():
         response.status_code = 500
         return response
 
-@app.route('/api/acceptfriend', methods=['POST', 'GET'])
+@app.route('/api/acceptfriend', methods=['POST'])
 def acceptfriend():
     try:
         friends = Friends(request.json['cuserid'], request.json['puserid'], app)
@@ -423,7 +439,7 @@ def acceptfriend():
     #socketio.emit('FMnotific',{'data':{'FMnotific': True}}, room = str(request.json['puserid']))
 
 
-@app.route('/api/rejectfriend', methods=['POST', 'GET'])
+@app.route('/api/rejectfriend', methods=['POST'])
 def rejectfriend():
     try:
         friends = Friends(request.json['cuserid'], request.json['puserid'], app)
@@ -462,7 +478,7 @@ def makeseen():
         response.status_code = 500
         return response
 
-@app.route('/api/match', methods=['POST', 'GET'])
+"""@app.route('/api/match', methods=['POST'])
 def match():
     try:
         data = (request.args.to_dict())
@@ -478,24 +494,37 @@ def match():
 
 @app.route('/api/unmatch', methods=['POST', 'GET'])
 def unmatch():
-    data = (request.args.to_dict())
-    matchunmatch = MatchUnmatch(data, app)
-    result = matchunmatch.unMatch()
-    return jsonify({'data':result})
-
-@app.route('/api/sendfeedback', methods=['GET'])
+    try:
+        data = (request.args.to_dict())
+        matchunmatch = MatchUnmatch(data, app)
+        result = matchunmatch.unMatch()
+        response = jsonify(status=result)
+        response.status_code = 200
+        return response
+    except Exception as e:
+        response = jsonify(status=False)
+        response.status_code = 500
+        return response
+"""
+@app.route('/api/sendfeedback', methods=['POST','GET'])
 def sendfeedback():
-    data = (request.args.to_dict())
-    msg = Message('FeedBack',
-                      sender='FeedBack User',
-                      recipients=['Team@theweber.in']
+    try:
+        msg = Message('FeedBack',
+                          sender='FeedBack User',
+                          recipients=['Team@theweber.in']
 
-            )
-    msg.html = "<b>"+ data['feedback_data'] +"</b>"
-    if mail.send(msg):
-        return jsonify({'data':True})
-    return  jsonify({'data':False})
-
+                )
+        msg.html = "<b>"+ request.json['feedback_data'] +"</b>"
+        if mail.send(msg):
+            response = jsonify(status = True)
+        else:
+            response = jsonify(status = False)
+        response.status_code = 200
+        return response
+    except Exception as e:
+        response = jsonify(status = e)
+        response.status_code = 500
+        return response
 @app.route('/api/send_eng_career', methods=['GET'])
 def sendEngCareer():
     data = (request.args.to_dict())
@@ -520,39 +549,40 @@ def sendEngCareer():
 
 @app.route('/api/suggestedFriends', methods=['POST','GET'])
 def friendSuggestions():
+    try:
+        resultUsers = []
+        peoples = app.data.driver.db['people']
+        #data = peoples.find({ "location.state": {"$regex": user_data['location']['state'], "$options" :"$i" }})
+        data = peoples.find({ "$and" : [
+                            { "location.state": {"$regex":request.json['location'], "$options" :"$i" }},
+                            { "friends" : {"$nin":request.json['friends'] }},
+                            { "username" : {"$ne" : request.json['username']}},
+                            {"notifications.friendid":{"$ne": ObjectId(request.json['_id'])}},
+                            {"send_add_requests" :{"$nin":[ObjectId(request.json['_id'])]}}
+                        ]},{"_id":1, "name":1, "picture":1}).limit(4)
 
-    resultUsers = []
-    peoples = app.data.driver.db['people']
-    #data = peoples.find({ "location.state": {"$regex": user_data['location']['state'], "$options" :"$i" }})
-    data = peoples.find({ "$and" : [
-                        { "location.state": {"$regex":request.json['location'], "$options" :"$i" }},
-                        { "friends" : {"$nin":request.json['friends'] }},
-                        { "username" : {"$ne" : request.json['username']}},
-                        {"notifications.friendid":{"$ne": ObjectId(request.json['_id'])}},
-                        {"send_add_requests" :{"$nin":[ObjectId(request.json['_id'])]}}
-                    ]},{"_id":1, "name":1, "picture":1}).limit(4)
+        for temp in data:
+            resultUsers.append(filterIdFields(temp, _id = True ))
 
-    for temp in data:
-        resultUsers.append(filterIdFields(temp, _id = True ))
+        if(len(resultUsers) >= 4):
+            return dumps({'data':resultUsers, 'status': 200})
 
-    if(len(resultUsers) >= 4):
-        return dumps({'data':resultUsers, 'status': 200})
+        data2 = peoples.find({ "$and" : [
+                            { "friends" : {"$nin": request.json['friends'] }},
+                            { "username" : {"$ne" : request.json['username']}},
+                            {"notifications.friendid":{"$ne": ObjectId(request.json['_id'])}},
+                            {"send_add_requests" :{"$nin":[ObjectId(request.json['_id'])]}}
+                        ]},{"_id":1, "name":1, "picture":1}).limit(4)
 
-    data2 = peoples.find({ "$and" : [
-                        { "friends" : {"$nin": request.json['friends'] }},
-                        { "username" : {"$ne" : request.json['username']}},
-                        {"notifications.friendid":{"$ne": ObjectId(request.json['_id'])}},
-                        {"send_add_requests" :{"$nin":[ObjectId(request.json['_id'])]}}
-                    ]},{"_id":1, "name":1, "picture":1}).limit(4)
+        for temp in data2:
+            resultUsers.append(filterIdFields(temp, _id = True))
 
-    for temp in data2:
-        resultUsers.append(filterIdFields(temp, _id = True))
+        if(len(resultUsers) >= 4):
+            return dumps({'data':resultUsers, 'status': 200})
 
-    if(len(resultUsers) >= 4):
-        return dumps({'data':resultUsers, 'status': 200})
-
-    return json.dumps({'data': 'no users found', 'status': False})
-
+        return json.dumps({'data': 'no users found', 'status': False})
+    except Exception as e:
+        response = jsonify(status="")
 
 
 def parse_token(req):

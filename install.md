@@ -32,7 +32,7 @@ db.createUser({
 
 pip install loremipsum
 
-pip install nltk
+pip install nltk flask_mail
 
 then after download all nltk  packages by following way
 goto pythonn console.
@@ -81,3 +81,8 @@ sudo ln -s /usr/bin/nodejs /usr/bin/node
 npm install karma
 or
 npm install -g karma
+
+
+pymongo ascending and descending order
+=-============================================
+http://api.mongodb.org/python/current/api/pymongo/cursor.html#pymongo.cursor.Cursor.distinct

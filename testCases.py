@@ -1,10 +1,8 @@
-
 import os
 from server import *
 import unittest
 import json
 import random
-
 
 class FlaskrTestCase(unittest.TestCase):
 
@@ -12,7 +10,7 @@ class FlaskrTestCase(unittest.TestCase):
         app.config['TESTING'] = True
         self.app = app.test_client()
 
-    def test_login(self):
+    """def test_login(self):
         print '===login function testing===='
         pass_login_test = False
         email = 'carole.gilbert16@example.com'
@@ -40,7 +38,7 @@ class FlaskrTestCase(unittest.TestCase):
         self.assertTrue(pass_login_test)
 
 
-    """def test_register(self):
+    def test_register(self):
         print '===registration function testing===='
         pass_register_test = False
         email = 'testing_email'+str(random.randint(1, 101099245))+'@example.com'
@@ -59,7 +57,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         if response.status_code == 200 or response.status_code == 401:
             pass_register_test = True
-        self.assertTrue(pass_register_test)"""
+        self.assertTrue(pass_register_test)
 
     def test_addConversation(self):
         print '====add conversations===='
@@ -116,7 +114,6 @@ class FlaskrTestCase(unittest.TestCase):
         self.assertTrue(pass_deleteSearchHistoryItem_test)
 
     def test_deleteconversation(self):
-        print '===== delete conversations ===='
         pass_deleteconversation_test = False
 
         cuserid = "5571545d7695d01454869bba"
@@ -131,11 +128,85 @@ class FlaskrTestCase(unittest.TestCase):
             pass_deleteconversation_test = True
         self.assertTrue(pass_deleteconversation_test)
 
+    def test_addfriend(self):
+        cuserid = "5571545d7695d01454869bba"
+        puserid = "5570b1567695d001f95b3ff8"
 
+        response = self.app.post('/api/addfriend',
+            data=json.dumps({
+                'cuserid': cuserid,
+                'puserid': puserid
+            }), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
 
+    def test_cancelfriend(self):
+        cuserid = "5571545d7695d01454869bba"
+        puserid = "5570b1567695d001f95b3ff8"
 
+        response = self.app.post('/api/cancelfriend',
+            data=json.dumps({
+                'cuserid': cuserid,
+                'puserid': puserid
+            }), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
 
+    def test_acceptfriend(self):
+        cuserid = "5571545d7695d01454869bba"
+        puserid = "5570b1567695d001f95b3ff8"
 
+        response = self.app.post('/api/acceptfriend',
+            data=json.dumps({
+                'cuserid': cuserid,
+                'puserid': puserid
+            }), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+
+    def test_rejectfriend(self):
+        cuserid = "5571545d7695d01454869bba"
+        puserid = "5570b1567695d001f95b3ff8"
+
+        response = self.app.post('/api/rejectfriend',
+            data=json.dumps({
+                'cuserid': cuserid,
+                'puserid': puserid
+            }), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+
+    def test_unfriend(self):
+        cuserid = "5571545d7695d01454869bba"
+        puserid = "5570b1567695d001f95b3ff8"
+
+        response = self.app.post('/api/unfriend',
+            data=json.dumps({
+                'cuserid': cuserid,
+                'puserid': puserid
+            }), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+
+    def test_makeseen(self):
+        cuserid = "5571545d7695d01454869bba"
+        response = self.app.post('/api/makeseen',
+            data=json.dumps({
+                'cuserid': cuserid
+            }), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+
+    def test_makeseen(self):
+        feedback_data = "this is sample feedback data"
+        response = self.app.post('/api/sendfeedback',
+            data=json.dumps({
+                'feedback_data': feedback_data
+            }), content_type='application/json')
+        self.assertEqual(response.status_code, 200)"""
+
+    def test_get_chat_users(self):
+        sender_id = "556c49697695d00ea8e0aae0"
+        response = self.app.post('/api/get-chat-users',
+            data=json.dumps({
+                'sender_id': sender_id
+            }), content_type='application/json')
+        print response.data
+        self.assertEqual(response.status_code, 200)
 
 if __name__ == '__main__':
     unittest.main()
