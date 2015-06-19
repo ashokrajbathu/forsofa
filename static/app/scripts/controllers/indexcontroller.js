@@ -9,9 +9,6 @@ angular.module('weberApp')
         $scope.isAuthenticated = function() {
             return $auth.isAuthenticated();
         };
-
-        $scope.get_screen_height = window.innerHeight-52;
-        $scope.get_inner_div_height = (window.innerHeight-210)/2;
         $scope.UserService = UserService;
         $rootScope.notifications_count = 0;
         $scope.instanceSearchHistory = {};
@@ -21,17 +18,13 @@ angular.module('weberApp')
 
         // socket functions execution
         function socket_operations(){
-
             socket.emit('connecting', {id:$rootScope.currentUser._id});
-
             socket.on('joiningstatus', function(data) {
                 console.log('connected status with following data==>', data)
             });
-
              socket.on('avaiblerooms', function(data) {
                 console.log('availble rooms  ==>', data)
             });
-
            socket.on('friend_notification', function(data){
                 if(data.status){
                     Restangular.one('people', $rootScope.currentUser._id).get({seed: Math.random()})
@@ -42,7 +35,6 @@ angular.module('weberApp')
                     });
                 }
             });
-
              socket.on('receive_messages', function(msg) {
                 console.log('message received', msg)
                 var new_message = {};

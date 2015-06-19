@@ -1,27 +1,37 @@
 <title>Youpep.com</title>
 <div class="container">
-	<div class="col-md-3 colpadding" wb-affix="150">
-		<div class="thumbnail">
-            <div class="itemsContainer">
-                <div class="image">
-                    <a style="cursor:pointer;">
-                        <img class="img-rounded" style="" data-placement="center"
-                             data-animation="am-fade-and-scale" data-template="modal.showProfileImage.tpl.html"
-                             bs-modal ng-src="{{currentUser.picture.large}}" />
-                    </a>
+
+    <div class="col-lg-3 col-md-3 col-sm-6">
+        <div class="home-doctors  clearfix  text-center doc-item">
+            <div class="common-doctor animated fadeInUp clearfix ae-animation-fadeInUp">
+                <!--<ul class="list-inline social-lists animate">
+                    <li><a href="#"><i class="fa fa-skype"></i></a></li>
+                    <li><a href="#"><i class="fa fa-skype"></i></a></li>
+                    <li><a href="#"><i class="fa fa-twitter"></i></a></li>
+                    <li><a href="#"><i class="fa fa-facebook"></i></a></li>
+                </ul>-->
+                <figure>
+                        <img width="670" height="500" ng-src="{{currentUser.picture.large}}"
+                             class="doc-img animate attachment-gallery-post-single wp-post-image" alt="doctor-2">
+                </figure>
+                <div class="text-content">
+                    <h3>
+                        <a href="" style="text-decoration: none;">
+                            {{currentUser.name.first}} {{currentUser.name.last}}
+                        </a>
+                    </h3>
+                    <!-- <div class="for-border"></div> -->
+                    <!--<h5><small>Dentist Title</small></h5>-->
+                    <button class="btn btn-sm icon-btn btn-primary">
+                        <span class="glyphicon btn-glyphicon glyphicon-thumbs-up img-circle text-primary"></span>
+                        <b>
+                            Follow Surya
+                        </b>
+                    </button>
                 </div>
             </div>
-			<div class="caption text-center">
-				<h3 style="text-transform: capitalize;">
-                    <a href="" data-placement="bottom" style="text-decoration:none;" data-animation="am-fade-and-scale" data-html="true"
-                         data-title="Lives In {{currentUser.location.city}}"
-                         bs-tooltip>
-                        {{currentUser.name.first}} {{currentUser.name.last}}
-                    </a>
-                </h3>
-			</div>
-		</div>
-		<div class="panel panel-default">
+        </div>
+        <div class="panel panel-default">
 			<div class="panel-heading" style="background-color:#fff;">
 				<h5 style="">
                     <i style="color:#337ab7" class="fa fa-bullhorn"></i>&nbsp;
@@ -35,9 +45,8 @@
 							<i class="fa fa-dashboard" style="opacity:0.65;font-size:12px;"></i>&nbsp;
 							I am interested in:
                             <a ng-repeat="interest in currentUser.interests"
-                               style="line-height:1.2em;color:;text-decoration:none;text-transform:capitalize;">
-								<!--{{ interest }}{{$last ? '' : ', '}}&nbsp;-->
-                                {{ InterestsService.get(interest).interest_string }}{{$last ? '' : ', '}}
+                               style="line-height:1.2em;color:;text-decoration:none;">
+								{{ InterestsService.get(interest).interest_string }}{{$last ? '' : ', '}}
 							</a>
 						</h6>
 					</div>
@@ -48,9 +57,7 @@
 							<i class="fa fa-graduation-cap" style="opacity:0.65;font-size:12px;"></i>
 							Studied at:
                             <a style="line-height:1.2em;color:;text-decoration:none;">
-
-								{{ currentUser.study.school }}, {{ currentUser.study.graduate }}
-
+								{{ currentUser.study.school }} {{ currentUser.study.graduate }}
 							</a>
 						</h6>
 					</div>
@@ -81,6 +88,7 @@
                     </strong>
                 </h5>
 			</div>
+
             <div class="panel-body" style="padding:1px;">
                 <a ng-repeat="friend in currentUser.friends " href="#/profile/{{ friend }}">
                     <img data-placement="top" style="width:87px" data-animation="am-fade-and-scale" data-html="true"
@@ -89,28 +97,15 @@
                 </a>
             </div>
 		</div>
-	</div>
+    </div>
 	<div class="col-md-6 colpadding" style="min-height:2000px">
         <div class="panel panel-default">
             <div class="panel-heading" style="padding:2px;border-top: 1px solid #ECEAEA;">
                 <!-- Nav tabs -->
                 <ul class="nav nav-tabs" role="tablist" style="border-bottom:0px solid #fff;">
                     <li>
-                      <a data-target="#home" role="tab" data-toggle="tab"
-                         style="background:#f5f5f5;border:0px solid #fff;">
-                          <h6 style="margin-top:0px;margin-bottom:0px;">
-                                <button class="btn btn-warning btn-xs" style="font-size: 10px;">
-                                    <icon class="fa fa-adjust"></icon>
-                                </button>
-                              <strong>
-                                  Questions
-                              </strong>
-                          </h6>
-                      </a>
-                    </li>
-                    <li class="active">
-                        <a data-target="#profile" role="tab" data-toggle="tab"
-                                 style="background:#f5f5f5;border:0px solid #fff;">
+                      <a data-target="#profile" role="tab" data-toggle="tab"
+                                 style="background:#f5f5f5;border:0px solid #fff;cursor: default;">
                             <h6 style="margin-top:0px;margin-bottom:0px;">
                                 <button class="btn btn-primary btn-xs" style="font-size: 10px;">
                                     <i class="fa fa-pencil"></i>
@@ -125,99 +120,22 @@
             </div>
             <div class="panel-body">
                 <div class="tab-content">
-                    <div class="tab-pane fade" id="home">
+                    <div class="tab-pane fade active in" id="home">
                         <div class="questions_arrow">
-                            <div class="panel-group" id="accordion">
-                                <div class="" style="margin-bottom:10px" ng-repeat="question in questions.allquestions">
-                                    <div style="cursor:pointer;padding-bottom: 15px;border-top:1px solid #f5f5f5 !important;" class=""
-                                         data-toggle="collapse" data-parent="#accordion" data-target="#">
-                                        <h5 class="">
-                                            <div class="row">
-                                                <div class="col-lg-12">
-                                                    <strong>{{question.question}}</strong>
-                                                </div>
-                                            </div>
-                                        </h5>
-                                    </div>
-                                    <div id="{{ question._id }}" class="panel-collapse">
-                                        <div class="" style="padding:;">
-                                            <div class="row" style="padding-bottom:5px;">
-                                                <div class="col-lg-10" style="margin-left:;" ng-if="checkAnswer(question._id)==1">
-                                                    <div class="funkyradio">
-                                                        <div class="funkyradio-primary">
-                                                            <input type="radio" ng-model="choice" id="{{question._id}}_1" value="{{question._id}}_yes"
-                                                               ng-change="answered('{{ question._id}}',1)"
-                                                               name="ans_{{question._id}}" ng-checked="true" />
-                                                            <label for="{{question._id}}_1">Say yes</label>
-                                                        </div>
-                                                        <div class="funkyradio-info">
-                                                            <input type="radio"  ng-model="choice" id="{{question._id}}_2" value="{{question._id}}_no"
-                                                               ng-change="answered('{{ question._id }}', 0)" ng-select="true"
-                                                               name="ans_{{question._id}}" />
-                                                            <label for="{{question._id}}_2">Say no</label>
-                                                        </div>
-                                                    </div>
-                                                    <!--answered : Yes-->
-                                                </div>
+                            <form role="form" class="post-to-timeline clearfix">
+                                <textarea ng-model="new_post" class="form-control"
+                                          style="height: 70px;margin-bottom: 10px;resize: none;box-shadow:none;" placeholder="Whats happening?" required>
 
-                                                <div class="col-lg-10" style="margin-left:;" ng-if="checkAnswer(question._id)==0">
-
-                                                    <div class="funkyradio">
-                                                        <div class="funkyradio-primary">
-                                                            <input type="radio" ng-model="choice" id="{{question._id}}_1" value="{{question._id}}_yes"
-                                                               ng-change="answered('{{ question._id}}',1)"
-                                                               name="ans_{{question._id}}" />
-                                                            <label for="{{question._id}}_1">Say yes</label>
-                                                        </div>
-                                                        <div class="funkyradio-info">
-                                                            <input type="radio"  ng-model="choice" id="{{question._id}}_2" value="{{question._id}}_no"
-                                                               ng-change="answered('{{ question._id }}', 0)" ng-select="true"
-                                                               name="ans_{{question._id}}" ng-checked="true" />
-                                                            <label for="{{question._id}}_2">Say no</label>
-                                                        </div>
-                                                    </div>
-                                                    <!--answered : No-->
-                                                </div>
-
-                                                <div class="col-lg-10" style="margin-left:;" ng-if="checkAnswer(question._id)==3">
-
-                                                    <div class="funkyradio">
-                                                        <div class="funkyradio-primary">
-                                                            <input type="radio" ng-model="choice" id="{{question._id}}_1" value="{{question._id}}_yes"
-                                                               ng-change="answered('{{ question._id}}',1)"
-                                                               name="ans_{{question._id}}" />
-                                                            <label for="{{question._id}}_1">Say yes</label>
-                                                        </div>
-                                                        <div class="funkyradio-info">
-                                                            <input type="radio" ng-model="choice" id="{{question._id}}_2" value="{{question._id}}_no"
-                                                               ng-change="answered('{{ question._id }}', 0)" ng-select="true"
-                                                               name="ans_{{question._id}}" />
-                                                            <label for="{{question._id}}_2">Say no</label>
-                                                        </div>
-                                                    </div>
-                                                <!--Not Yet answered-->
-                                                </div>
-                                            </div>
-                                        </div>
+                                </textarea>
+                                <div class="row">
+                                    <div class="col-sm-2 pull-right">
+                                        <button ng-click="submit_post()" type="submit" class="btn btn-primary btn-block btn-sm">
+                                            <strong>Post</strong>
+                                        </button>
                                     </div>
                                 </div>
-                            </div>
+                            </form>
                         </div>
-                    </div>
-                    <div class="tab-pane fade active in" id="profile" cg-busy="new_submit_busy_post">
-                        <form role="form" class="post-to-timeline status_arrow clearfix">
-                            <textarea ng-model="new_post" class="form-control"
-                                      style="height: 70px;margin-bottom: 10px;resize: none;box-shadow:none;" placeholder="Whats happening?" required>
-
-                            </textarea>
-                            <div class="row">
-                                <div class="col-sm-2 pull-right">
-                                    <button ng-click="submit_post()" type="submit" class="btn btn-primary btn-block btn-sm">
-                                        <strong>Post</strong>
-                                    </button>
-                                </div>
-                            </div>
-                        </form>
                     </div>
                 </div>
             </div>

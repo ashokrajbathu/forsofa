@@ -1,26 +1,25 @@
 <div class="container">
-    <div class="col-md-3 colpadding" wb-affix="150">
-		<div class="thumbnail">
-            <div class="itemsContainer">
-                <div class="image">
-                    <a href="">
-                        <img class="img-rounded" style="width:;" data-placement="center"
-                             data-animation="am-fade-and-scale" data-template="static/app/views/show_profile_image.html"
-                             bs-modal="modal" ng-src="{{user.picture.large}}" />
-                    </a>
+    <div class="col-lg-3 col-md-3 col-sm-6">
+        <div class="home-doctors  clearfix  text-center doc-item">
+            <div class="common-doctor animated fadeInUp clearfix ae-animation-fadeInUp">
+                <!--<ul class="list-inline social-lists animate">
+                    <li><a href="#"><i class="fa fa-skype"></i></a></li>
+                    <li><a href="#"><i class="fa fa-skype"></i></a></li>
+                    <li><a href="#"><i class="fa fa-twitter"></i></a></li>
+                    <li><a href="#"><i class="fa fa-facebook"></i></a></li>
+                </ul>-->
+                <figure>
+                        <img width="670" height="500" ng-src="{{user.picture.large}}"
+                             class="doc-img animate attachment-gallery-post-single wp-post-image" alt="doctor-2">
+                </figure>
+                <div class="text-content">
+                    <h3>{{user.name.first}} {{user.name.last}}</h3>
+                    <!-- <div class="for-border"></div> -->
+                    <h5><small>Dentist Title</small></h5>
                 </div>
             </div>
-			<div class="caption text-center">
-				<h3 style="text-transform: capitalize;">
-                    <a href="" data-placement="bottom" style="text-decoration:none;" data-animation="am-fade-and-scale"
-                       data-html="true" data-title="{{user.name.first}} {{user.name.last}}"
-                         bs-tooltip>
-                        {{user.name.first}} {{user.name.last}}
-                    </a>
-                </h3>
-			</div>
-		</div>
-		<div class="panel panel-default">
+        </div>
+        <div class="panel panel-default">
 			<div class="panel-heading" style="background-color:#fff;">
 				<h5 style="">
                     <i style="color:#337ab7" class="fa fa-bullhorn"></i>&nbsp;
@@ -86,25 +85,33 @@
                 </a>
             </div>
 		</div>
-	</div>
-    <div class="col-lg-6">
-        <div class="row">
-            <div class="col-lg-12">
-                <div class="panel panel-default" ng-show="friends.length">
-                   <div class="panel-heading" style="background-color:#fff;">
-                       <div class="row">
-                           <div class="col-sm-6">
-                               <h5>
-                                   <i style="color:#337ab7" class="fa fa-user"></i>&nbsp;
-                                   <strong>Friends</strong> -&nbsp;
-                                       <label class="">
-                                           <a href="" style="">
-                                               {{user.friends.length}}
-                                           </a>
-                                       </label>
-                                   </span>
-                               </h5>
-                           </div>
+    </div>
+    <div class="col-lg-9">
+        <div class="panel panel-default">
+            <div class="panel-body">
+                <h5>
+                    <b>
+                        Friends
+                    </b>
+                </h5>
+                <hr style="margin: 5px 0px 10px 0px;" />
+                <ul class="nav nav-tabs">
+                  <li class="active"><a data-target="#tab_a" data-toggle="tab">
+                      ( 333 )&nbsp;
+                      Total Friends
+                  </a></li>
+                  <li><a data-target="#tab_b" data-toggle="tab">
+                      <i style="color:#337ab7" class="fa fa-user"></i>&nbsp;
+                      Friend Suggestions
+                  </a></li>
+                  <li><a data-target="#tab_c" data-toggle="tab">
+                      ( 20 )&nbsp;
+                      Sent Requests
+                  </a></li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane active" id="tab_a">
+                        <div class="row" style="margin-top: 20px;">
                            <div class="col-sm-5 pull-right">
                                <div class="right-inner-addon">
                                     <i class="fa fa-search" style="opacity:0.70;padding:7px;"></i>
@@ -112,123 +119,143 @@
                                            placeholder="Search Friends" ng-model="searchFriend"/>
                                </div>
                            </div>
-                       </div>
-                   </div>
-                   <div class="panel-body">
-                       <div ng-repeat=" friend in data = (friends |  filter : searchFriend )" class="row pad-top" >
-                            <div class="jumbotron"
-                                 style="padding:5px 10px;background-color:#fff;margin-bottom:10px;">
-                                <div class="row" style="">
-                                    <div class="col-lg-2" style="padding-right:5px;">
-                                        <div class="thumbnail" style="border:0px solid;">
-                                            <img ng-src="{{ friend.picture.thumbnail }}"
-                                                style="border-radius:2px">
+                        </div>
+                        <hr />
+
+                        <div class="col-sm-6 col-md-4" cg-busy="load_cancel_request"
+                             ng-repeat=" friend in data = (friends |  filter : searchFriend )" >
+                            <div class="panel panel-default panel-card">
+                                <div class="panel-heading">
+                                    <img ng-src="{{ friend.picture.thumbnail }}" />
+
+                                </div>
+                                <div class="panel-figure">
+                                    <img class="img-responsive img-circle" ng-src="{{ friend.picture.thumbnail }}" />
+                                </div>
+                                <div class="panel-body text-center">
+                                    <h4 class="panel-header">
+                                        <a href="#/profile/{{ friend._id }}">
+                                            @{{ friend.name.first }} {{ friend.name.last }}
+                                        </a>
+                                    </h4>
+                                    <!--<small>A short description goes here.</small>-->
+                                    <unaddfriend>
+                                        <button ng-click="friendunfriend('{{ friend._id }}')"
+                                                class="btn-sm btn btn-primary">unfriend</button>
+                                    </unaddfriend>
+                                </div>
+                                <div class="panel-thumbnails">
+                                    <div class="row">
+                                        <div class="col-xs-4">
+                                            <div class="thumbnail">
+                                                <img src="http://placemi.com/mzwlj/60x60" />
+                                            </div>
+                                        </div>
+                                        <div class="col-xs-4">
+                                            <div class="thumbnail">
+                                                <img src="http://placemi.com/yboaj/60x60" />
+                                            </div>
+                                        </div>
+                                        <div class="col-xs-4">
+                                            <div class="thumbnail">
+                                                <img src="http://placemi.com/gv3bp/60x60" />
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="col-sm-6 colpadding">
-                                        <h5>
-                                            <a href="#/profile/{{ friend._id }}"
-                                               data-placement="top" style="text-decoration:none;" data-animation="am-fade-and-scale"
-                                               data-html="true" data-title="{{friend.name.first}} {{friend.name.last}}"
-                                                 bs-tooltip>
-                                                <strong>
-                                                    {{ friend.name.first }} {{ friend.name.last }}
-                                                </strong>
-                                            </a>
-                                        </h5>
-                                    </div>
-                                    <div class="col-sm-3 pull-right">
-                                        <!--<a matchmeunfriend  style="margin-top:15px"
-                                           class="btn btn-default btn-sm pull-right" ng-click="matchmeunfriend('{{ friend._id }}')">
-                                            Unfriend
-                                        </a>-->
-                                        <unaddfriend>
-                                            <button ng-click="friendunfriend('{{ friend._id }}')"
-                                                    class="btn-sm btn btn-primary">unfriend</button>
-                                        </unaddfriend>
-                                    </div>
                                 </div>
                             </div>
-
-                       </div>
-                   </div>
-               </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-lg-12">
-                <div class="panel panel-default">
-                    <div class="panel-body" style="padding-bottom:0px;">
-                        <h5 style="margin:1px 0px">
-                            <strong>
-                                <i style="color:#337ab7" class="fa fa-user"></i>&nbsp;
-                                Friends Suggestions
-                            </strong>
-                        </h5>
-                    </div>
-                    <hr />
-                    <div class="panel-body" style="padding-top:0px;">
-                        <div ng-repeat="person in suggested_people">
-                            <div class="row" cg-busy="load_cancel_request">
-                                <div class="col-lg-9">
-                                    <img ng-src="{{ person.picture.medium }}" class="pull-left"
-                                         style="width:60px;border-radius:3px;margin-right:10px;" />
-                                    <h5 style="">
-                                        <a href="#/profile/{{ person._id}}">
-                                            {{ person.name.first }} {{ person.name.last }}
-                                        </a>
-
-                                    </h5>
-                                </div>
-                                <div class="col-lg-3 pull-right">
-                                    <cancelrequest>
-                                        <button  ng-click="frndaddrequest(person._id, 0)"
-                                                 class="btn btn-sm pull-right btn-primary">
-                                            Add Friend
-                                        </button>
-                                    </cancelrequest>
-                                </div>
-                            </div>
-                            <hr style="margin:10px 0px;" />
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-lg-12">
-                <div class="panel panel-default">
-                    <div class="panel-body" style="padding-bottom:0px;">
-                        <h5 style="margin:1px 0px">
-                            <strong>
-                                <i style="color:#337ab7" class="fa fa-user"></i>&nbsp;
-                                Sent Friend Requests
-                            </strong>
-                        </h5>
-                    </div>
-                    <hr />
-                    <div class="panel-body" style="padding-top:0px;">
-                        <div ng-repeat="friend in currentUser.send_add_requests">
-                            <div class="row" cg-busy="load_cancel_request">
-                                <div class="col-lg-9">
-                                    <img ng-src="{{ friend.picture.thumbnail }}" class="pull-left"
-                                         style="width:60px;border-radius:3px;margin-right:10px;" />
-                                    <h5 style="">
-                                        <a href="#/profile/{{ friend._id }}">
-                                            {{ friend.name.first }} {{ friend.name.last }}
-                                        </a>
-                                    </h5>
+                    <div class="tab-pane" id="tab_b">
+                        <div style="margin-top: 20px;">
+                             <div cg-busy="load_cancel_request" class="col-sm-6 col-md-4" ng-repeat="person in suggested_people">
+                                <div class="panel panel-default panel-card">
+                                    <div class="panel-heading">
+                                        <img ng-src="{{ person.picture.medium }}" />
+                                        <cancelrequest>
+                                            <button  ng-click="frndaddrequest(person._id, 0)"
+                                                     class="btn btn-sm pull-right btn-primary">
+                                                Add Friend
+                                            </button>
+                                        </cancelrequest>
+                                    </div>
+                                    <div class="panel-figure">
+                                        <img class="img-responsive img-circle" ng-src="{{ person.picture.medium }}" />
+                                    </div>
+                                    <div class="panel-body text-center">
+                                        <h4 class="panel-header"><a href="#/profile/{{ person._id}}">@{{ person.name.first }} {{ person.name.last }}</a></h4>
+                                        <small>Cute and Smart</small>
+                                    </div>
+                                    <div class="panel-thumbnails">
+                                        <div class="row">
+                                            <div class="col-xs-4">
+                                                <div class="thumbnail">
+                                                    <img src="http://placemi.com/mzwlj/60x60" />
+                                                </div>
+                                            </div>
+                                            <div class="col-xs-4">
+                                                <div class="thumbnail">
+                                                    <img src="http://placemi.com/yboaj/60x60" />
+                                                </div>
+                                            </div>
+                                            <div class="col-xs-4">
+                                                <div class="thumbnail">
+                                                    <img src="http://placemi.com/gv3bp/60x60" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col-lg-3 pull-right">
-                                    <addfriend>
-                                        <button ng-click="frndcancelrequest(friend._id, 0)"
-                                                class="btn btn-sm btn-primary pull-right">
-                                            cancel request
-                                        </button>
-                                    </addfriend>
+                             </div>
+                        </div>
+
+                    </div>
+                    <div class="tab-pane" id="tab_c">
+                        <div style="margin-top: 20px;">
+                            <div cg-busy="load_cancel_request" class="col-sm-6 col-md-4"
+                                 ng-repeat="friend in currentUser.send_add_requests">
+                                <div class="panel panel-default panel-card">
+                                    <div class="panel-heading">
+                                        <img ng-src="{{ friend.picture.thumbnail }}" />
+                                        <addfriend>
+                                            <button ng-click="frndcancelrequest(friend._id, 0)"
+                                                    class="btn btn-sm btn-primary pull-right">
+                                                cancel request
+                                            </button>
+                                        </addfriend>
+                                    </div>
+                                    <div class="panel-figure">
+                                        <img class="img-responsive img-circle" ng-src="{{ friend.picture.thumbnail }}" />
+                                    </div>
+                                    <div class="panel-body text-center">
+                                        <h4 class="panel-header">
+                                            <a href="#/profile/{{ friend._id }}">
+                                                @{{ friend.name.first }} {{ friend.name.last }}
+                                            </a>
+                                        </h4>
+                                        <small>Cute and Smart</small>
+                                    </div>
+                                    <div class="panel-thumbnails">
+                                        <div class="row">
+                                            <div class="col-xs-4">
+                                                <div class="thumbnail">
+                                                    <img src="http://placemi.com/mzwlj/60x60" />
+                                                </div>
+                                            </div>
+                                            <div class="col-xs-4">
+                                                <div class="thumbnail">
+                                                    <img src="http://placemi.com/yboaj/60x60" />
+                                                </div>
+                                            </div>
+                                            <div class="col-xs-4">
+                                                <div class="thumbnail">
+                                                    <img src="http://placemi.com/gv3bp/60x60" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <hr style="margin:10px 0px;" />
                         </div>
                         <div ng-if="currentUser.send_add_requests.length == 0">
                             <div class="row">
@@ -240,7 +267,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </div><!-- tab content -->
             </div>
         </div>
     </div>

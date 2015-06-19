@@ -63,12 +63,16 @@ angular.module('weberApp')
 
         $scope.perfomSearch = function(){
             $scope.load_data = $timeout(function(){
+                console.log("perform search", $scope.query);
                 $scope.search = true;
                 if($scope.present_search_query == $scope.query) return;
                 if($scope.query){
                     //alredy present searched query no need to search again
+                    console.log("query", $scope.query);
                     $location.search('query', $scope.query);
+                    console.log("location", $scope.location);
                     $scope.matchResults = new MatchMeResults($scope.query, $scope.location);
+                    console.log("match results", $scope.matchResults);
                     $scope.matchResults.newSearchResults();
                     if($scope.isAuthenticated()){
                         store_search_text($scope.query);

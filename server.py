@@ -295,9 +295,9 @@ def matchresults():
             filtered_people.append(filterIdFields(temp, _id=True, interests = True))
             #print '--------------match results---------------'
             #print filtered_people
-            response =  jsonify(final_reult = filtered_people)
-            response.status_code = 200
-            return response
+            #response =  jsonify(final_result = filtered_people)
+            #response.status_code = 200
+            #return response
 
         return json.dumps({'final_result': filtered_people})
     except Exception as e:
@@ -1005,7 +1005,7 @@ def fileupload():
 
 #app.threaded=True
 if __name__ == '__main__':
-    socketio.run(app, host='127.0.0.1', port=8000)
+    socketio.run(app, host='192.168.0.105', port=8000)
 # server sent events section
 """from redis import Redis
 redis = Redis()

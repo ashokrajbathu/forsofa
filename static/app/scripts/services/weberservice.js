@@ -742,7 +742,9 @@ angular.module('weberApp')
                 }
 
             $http(req).success(function(data){
-               self.mresults.push.apply(self.mresults, data.final_result);
+                console.log("data final", data);
+                self.mresults.push.apply(self.mresults, data.final_result);
+                console.log("mresults", self.mresults);
             }.bind(self));
 
             }

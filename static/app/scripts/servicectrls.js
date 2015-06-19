@@ -2,256 +2,321 @@
 
 /**
  * @ngdoc function
- * @name weberApp.controller:ForgotPasswordCtrl
+ * @name weberApp.controller:EmailDetailsCtrl
  * @description
- * # ForgotPasswordCtrl
+ * # EmailDetailsCtrl
  * Controller of the weberApp
  */
 angular.module('weberApp')
-	.directive('passwordrecovery', function ($compile,$location, CurrentUser, Restangular, $routeParams, friendsActivity) {
-        return {
-            restrict: 'E',
-            replace: true,
-            link: function (scope, element, attrs) {},
-            controller:function($scope, $http, $element, $attrs, $transclude){
+	.controller('enterInterestsCtrl', function($timeout, questions, InterestsService, $http,
+	 Restangular, $scope, $auth, $alert, $location, $routeParams, $rootScope) {
 
-                $scope.sendPassword = function(){
+        //var element = $routeParams.userId;
+        //console.log(element)
+        $scope.email = $routeParams.email;
+        //console.log($scope.user);
+        $scope.show_interests = true;
+        $scope.show_questions = false;
+        $scope.final_interests_array = [];
 
-                    $scope.password_recovery_busy = $http.post('/forgotpasswordlink', {email:$scope.email}).
-                        success(function(data, status, headers, config) {
-                            // this callback will be called asynchronously
-                            // when the response is available
-                            var html = '<b>password link has been sent to your email</b><br><p>Please check your email</p>';
-                            var e =$compile(html)($scope);
-                            $element.replaceWith(e);
-                        }).
-                        error(function(error) {
-                            // called asynchronously if an error occurs
-                            // or server returns response with an error status.
-                            var html = '<b>your email does not exist, Please check it once..</b>';
-                            var e =$compile(html)($scope);
-                            $element.replaceWith(e);
-                        });
+        $scope.$watchCollection('data.tags',function(val){
+            $scope.final_interests_array = val;
+        });
 
-
-                }
-            }
-        };
-    })
-    .directive('changepassworddirective', function ($compile, $location, $timeout, CurrentUser, Restangular, $routeParams, friendsActivity) {
-        return {
-            restrict: 'E',
-            replace: true,
-            link: function (scope, element, attrs) {},
-            controller:function($scope, $http, $element, $attrs, $transclude, $routeParams){
-
-                var user_name = $routeParams.user_name;
-                var password_random_string = $routeParams.password_random_string;
-
-                console.log(user_name+password_random_string);
-
-                $scope.passwordButton = function(){
-
-                    $scope.new_password = $http.post('/get_new_hash_password', {
-                            user_name:$routeParams.user_name,
-                            new_password:$scope.formData.password
-                        })
-                        .success(function(data, status, headers, config) {
-                            //console.log("========hashed password======");
-                            //console.log(data);
-                            $scope.hashed_password = data;
-
-                            var Update_Password = Restangular.one('people', $routeParams.user_name).get({seed:Math.random()});
-
-                            Update_Password.then(function(response){
-                                $scope.user = response;
-
-                                //console.log("=====user details===");
-                                //console.log($scope.user);
-
-                                $scope.user.patch({
-                                    'password':{
-                                        'password':$scope.hashed_password,
-                                        'password_updated':new Date()
-                                    }
-                                }).then(function(response){
-                                    // this callback will be called asynchronously
-                                    // when the response is available
-
-                                    //console.log("===after patch=====");
-                                    //console.log(response);
-                                    var html = '<b>your password has been changed</b>';
-                                    var e =$compile(html)($scope);
-                                    $element.replaceWith(e);
-                                    $timeout(function(){
-                                        $location.path('/login');
-                                    },2000);
-
-
-                                });
-                            });
-                        }).
-                        error(function(error) {
-                            // called asynchronously if an error occurs
-                            // or server returns response with an error status.
-                            var html = '<b>your email does not exist, Please check it once..</b>';
-                            var e =$compile(html)($scope);
-                            $element.replaceWith(e);
+        $http.get('/api/me', {
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': $auth.getToken()
+			}
+		}).success(function(userId) {
+            Restangular.one('people', JSON.parse(userId)).get({seed:Math.random()}).then(function(user) {
+                $rootScope.currentUser = user;
+                if($rootScope.currentUser.email_confirmed == false){
+                    var userNameAlert = $alert({
+                        title: 'Thanks for Registering: ',
+                        content: 'Your email is not confirmed',
+                        placement: 'top-left',
+                        type: 'danger',
+                        show: true
                     });
                 }
-            }
-        };
+
+                /*$scope.afterFinishQuestions = function(){
+                    $location.path('/home');
+                }
+                // questions section functions
+                $scope.questions = new questions(user);
+                $scope.questions.getallquestions();
+
+                $scope.answered = function(question, ans){
+
+                    for(var temp in $rootScope.currentUser.questions){
+                        if($rootScope.currentUser.questions[temp].questionid == question){
+                            $rootScope.currentUser.questions[temp].answer = ans;
+                            $scope.questions.updateAnswer(question, ans, $rootScope.currentUser._id);
+                            return;
+                        }
+                    }
+
+                    $rootScope.currentUser.questions.push({'questionid':question, 'answer': ans});
+                    //console.log('pushed answereds', $rootScope.currentUser.questions)
+                    $scope.questions.updateAnswer(question, ans, $rootScope.currentUser._id);
+                    return;
+                }
+
+                $scope.checkAnswer = function(question_id){
+                    data = $scope.questions.checkAnswer(question_id);
+                    return data;
+                }
+                // end of questions section
+
+                if($rootScope.currentUser.interests.length){
+                    // success show
+                    $scope.show_interests = false;
+                    $scope.show_questions = true;
+                }
+                else{
+                    // success hide
+                    $scope.show_interests = true;
+                    $scope.show_questions = false;
+                }*/
+                $scope.newUserInterests = function(){
+                    for(var temp in $rootScope.currentUser.interests){
+                        $scope.final_interests_array.push(InterestsService.get($rootScope.currentUser.interests[temp]).interest_string)
+                    }
+                    $scope.Interests_busy = $timeout(function() {
+                        $http.post('/get_interested_ids',
+                        {
+                            interests: $scope.final_interests_array,
+                            username: $rootScope.currentUser.username
+                        })
+                        .success(function(data, status, headers, config) {
+                            //console.log("======return success of interests of ids",data);
+                            $rootScope.currentUser.interests = data.interests;
+                            $scope.show_interests = false;
+                            $scope.show_questions = true;
+                            var interestsAlert = $alert({
+                                title: 'Success',
+                                content: 'Updated your Interests',
+                                placement: 'top',
+                                type: 'success',
+                                show: true
+                            });
+                            $timeout(function() {
+                                interestsAlert.hide();
+                            }, 5000);
+                        })
+                        .error(function(data, status, headers, config) {
+                            //console.log("====error of interests", data.data)
+                        });
+                    },2000);
+                }
+
+            });
+        });
     });'use strict';
 
 /**
  * @ngdoc function
- * @name weberApp.controller:UserprofileCtrl
+ * @name weberApp.controller:EmailCtrl
  * @description
- * # UserprofileCtrl
+ * # EmailCtrl
  * Controller of the weberApp
  */
 angular.module('weberApp')
-	.controller('UserprofileCtrl', function($scope, $routeParams,$templateCache, sortIListService, questions,
-	                                        Restangular, InfinitePosts, UserService,MatchButtonService,$rootScope,
-	                                        CurrentUser, InterestsService, friendsActivity) {
+	.controller('EmailCtrl', function($http, $timeout, $route, Restangular, $scope, $auth, $alert, $location, $routeParams) {
 
-		$scope.UserService = UserService;
-		$scope.MatchButtonService = MatchButtonService;
-		$scope.sortIListService = sortIListService;
-		$scope.InterestsService = InterestsService;
-		$scope.show_only_profile_pic = false;
-        $scope.show_only_p_user_pic = true;
-        $scope.show_c_user_info = false;
-        $scope.show_p_user_info = true;
-
-        Restangular.one('people', $routeParams.username).get({ seed : Math.random()}).then(function(profileuser) {
-    		// profile user information
-	    	$scope.profileuser = profileuser;
-            // questions section functions
-            $scope.questions = new questions(profileuser);
-            //$scope.questions.getcquestions();
-            $scope.questions.getUserQuestions();
-
-            if ( $scope.profileuser.friends.length !== 0) {
-                var params = '{"_id": {"$in":["'+($scope.profileuser.friends).join('", "') + '"'+']}}'
-                Restangular.all('people').getList({
-                    where:params,
-                    seed:Math.random()
-                }).then(function(friends) {
-                    $scope.friends = friends;
-                });
-            }
-
-            var loadPostIds = [];
-            loadPostIds.push(profileuser._id);
-            loadPostIds = "[\"" + loadPostIds.join("\",\"") + "\"]";
-            $scope.infinitePosts = new InfinitePosts($scope.profileuser, loadPostIds);
-            $scope.infinitePosts.getEarlyPosts();
-
-            $scope.checkAnswer = function(question_id){
-                data = $scope.questions.checkAnswer(question_id);
-                return data;
-            }
-
-             $scope.answered = function(question, ans){
-                 $scope.questions.updateAnswer(question, ans, $rootScope.currentUser._id);
-                 //console.log(question, ans)
-             }
-
-
-
-
-        // end of profile user information
-        if($rootScope.currentUser === 'undefined'){
-            $http.get('/api/me', {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': $auth.getToken()
+        Restangular.one('people',$routeParams.objectId).get({seed:Math.random()}).then(function(user) {
+              $scope.user = user;
+              if($routeParams.rand_string == $scope.user.random_string){
+                if($scope.user.email_confirmed == true){
+                    $scope.user_email_confirmed = "your email is already activated";
+                    $location.path('/home');
+                    return;
                 }
-            }).success(function(user_id) {
-                var params = '{"send_add_requests":1}';
-                Restangular.one('people',JSON.parse(user_id)).get({embedded:params, seed: Math.random()}).then(function(user) {
-                    $rootScope.currentUser = user;
-                    questionOperations();
-                });
-            });
-
-        }else{
-            //console.log('else part user', $rootScope.currentUser)
-            questionOperations();
-        }
-
-
-        function questionOperations(){
-
-            $scope.checkYouAnswered = function(question_id){
-                data = $scope.questions.checkYouAnswered(question_id, $rootScope.currentUser);
-                return data;
-            }
-
-            $scope.youAnswered = function(question, ans){
-                //console.log('------------->>> user id', $rootScope.currentUser._id);
-                $scope.questions.updateUser2(question, ans, $rootScope.currentUser._id);
-                //console.log(question, ans)
-            }
-             // end of questions section
-            if($rootScope.currentUser._id !== $scope.profileuser._id){
-                var friendsactivity = new friendsActivity($rootScope.currentUser, $scope.profileuser);
-                //console.log(friendsactivity)
-                $scope.check_relation = function(){
-                    $scope.relation = friendsactivity.getRelation();
-                    return $scope.relation;
-                }
-            }
-
-            $scope.pushToPost = function(postauthor, postid){
-                //console.log('match user id', user._id)
-                var posts = $scope.infinitePosts.posts;
-                for(var temp in posts){
-                    if(posts[temp]._id == postid){
-                        postauthor = posts[temp].author;
-                        postid = posts[temp]._id;
-
-                        var iPeople = posts[temp].interestedPeople;
-                        for(var i in iPeople){
-                            if(iPeople[i].interested_person == $rootScope.currentUser._id){
-                                return true;
-                            }
-                        }
-                        iPeople.push({'interested_person': $rootScope.currentUser._id, 'match_date': new Date()});
-                        //console.log('post author-->', postauthor)
-                        MatchButtonService.match(postauthor, postid , $rootScope.currentUser._id).then(function(data){
-                            //console.log('match agree succesfully-->', data);
+                $scope.user.patch({
+                        email_confirmed : true
+                },{},{'If-Match': $scope.user._etag}).then(function(response){
+                        var interestsAlert = $alert({
+                            title: 'Success',
+                            content: 'Email Confirmed',
+                            placement: 'top',
+                            type: 'success',
+                            show: true
                         });
+                        $timeout(function() {
+                            interestsAlert.hide();
+                        }, 5000);
+                        $timeout(function(){
+                            $location.path('/home');
+                        })
+                });
+              }
+        });
+    });'use strict';
 
-                    }
-                }
-            }
+/**
+ * @ngdoc function
+ * @name weberApp.controller:FriendsCtrl
+ * @description
+ * # FriendsCtrl
+ * Controller of the weberApp
+ */
+angular.module('weberApp')
+  .controller('FriendsCtrl', function($scope, $auth, Restangular, InterestsService,
+                InfinitePosts, $alert, $http, CurrentUser, UserService, $rootScope) {
+		$scope.UserService = UserService;
+		$scope.InterestsService = InterestsService;
+		$http.get('/api/me', {
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		}).success(function(user_id) {
 
-            $scope.deleteFromPost = function(postauthor, postid){
+		    var embedded = '{"send_add_requests":1}';
+			Restangular.one('people',JSON.parse(user_id)).get({ embeddded: embedded, seed:Math.random()}).then(function(user) {
 
-                //console.log('unmatch user id', user._id)
-                var posts = $scope.infinitePosts.posts;
+                $scope.suggested_people = [];
+				$scope.user = user;
+				$scope.show_only_profile_pic = true;
+                $scope.show_only_p_user_pic = false;
 
-                for(var temp in posts){
-                    // if post contains with post id
-                    if(posts[temp]._id == postid){
-                        var iPeople = posts[temp].interestedPeople;
-                        for(var i in iPeople){
-                            if(iPeople[i].interested_person == $rootScope.currentUser._id){
-                               iPeople.splice(i,1);
-                               MatchButtonService.unmatch(postauthor, postid, $rootScope.currentUser._id).then(function(data){
-                                    //console.log('unmatch disagree succesfully-->', data);
-                               });
-                            }
+                if (user.friends.length !== 0) {
+				    var params = '{"_id": {"$in":["'+($scope.user.friends).join('", "') + '"'+']}}';
+					Restangular.all('people').getList({where :params}).then(function(friend) {
+					   // console.log('===friends====')
+					   // console.log(friend)
+						$scope.friends = friend;
+					});
+				}
+                // getting suggested friends
+
+                 //console.log('before request', $rootScope.currentUser)
+                 var req = {
+
+                        method: 'POST',
+                        url: '/api/suggestedFriends',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        data: {
+                            location: $rootScope.currentUser['location']['state'],
+                            friends: $rootScope.currentUser['friends'],
+                            username: $rootScope.currentUser['username'],
+                            _id: $rootScope.currentUser['_id'],
+                            seed: Math.random()
                         }
+                 }
+                 $http(req).then(function(data){
+                     //console.log('-----------at suggested people', data)
+                     if(data.data.status != false){
+                        //console.log("user suggestion", data.data.data)
+                        $scope.suggested_people = data.data.data;
+                        //console.log($scope.suggested_people)
+                     }
+                 })
 
+
+
+			});
+		});
+
+		$scope.filterFunction = function(element) {
+            return element.name.match(/^$scope.searchFriend/) ? true : false;
+        };
+	});'use strict';
+/**
+ * @ngdoc function
+ * @name weberApp.controller:MainCtrl
+ * @description
+ * # MainCtrl
+ * Controller of the weberApp
+ */
+angular.module('weberApp')
+	.controller('PostLoadController', function($http, $auth, InterestsService, Restangular, $scope,
+	                                           $routeParams, PostService, InfinitePosts,MatchButtonService) {
+
+	    $scope.postid = $routeParams.postid;
+	    $scope.MatchButtonService = MatchButtonService;
+	    $scope.InterestsService = InterestsService;
+	    $http.get('/api/me', {
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': $auth.getToken()
+			}
+		}).success(function(user_id) {
+			Restangular.one('people',JSON.parse(user_id)).get({seed:Math.random()}).then(function(user) {
+
+                $scope.user = user;
+				var loadPostIds = angular.copy(user.friends);
+
+                if (user.friends.length !== 0) {
+
+				    var params = '{"_id": {"$in":["'+($scope.user.friends).join('", "') + '"'+']}}';
+
+					Restangular.all('people').getList({where :params}).then(function(friend) {
+						$scope.friends = friend;
+					});
+				}
+
+				$scope.infinitePosts = new InfinitePosts(user, []);
+				$scope.infinitePosts.getSpecificPost($routeParams);
+
+                $scope.confirm_delete = function(){
+                    $scope.infinitePosts.deletePost($scope.infinitePosts.posts[0], user);
+                }
+
+                $scope.pushToPost = function(postauthor, postid){
+                    var posts = $scope.infinitePosts.posts;
+
+                    for(var temp in posts){
+                        if(posts[temp]._id == postid){
+                            var iPeople = posts[temp].interestedPeople;
+                            for(var i in iPeople){
+                                if(iPeople[i].interested_person == user._id){
+                                    return true;
+                                }
+                            }
+                            iPeople.push({'interested_person': user._id, 'match_date': new Date()});
+                            //console.log('post author-->', postauthor)
+                            //console.log('postauthor-->', postauthor)
+                            //console.log('postid -->', postid)
+                            //console.log('user id-->', user._id)
+                            MatchButtonService.match(postauthor, postid , user._id).then(function(data){
+                                //console.log('match agree succesfully-->', data);
+                            });
+
+                        }
+                    }
+	            }
+
+                $scope.deleteFromPost = function(postauthor, postid){
+
+                    //console.log('unmatch user id', user._id)
+                    var posts = $scope.infinitePosts.posts;
+
+                    for(var temp in posts){
+                        // if post contains with post id
+                        if(posts[temp]._id == postid){
+                            var iPeople = posts[temp].interestedPeople;
+                            for(var i in iPeople){
+                                if(iPeople[i].interested_person == user._id){
+                                   iPeople.splice(i,1);
+                                   MatchButtonService.unmatch(postauthor, postid, user._id).then(function(data){
+                                        //console.log('unmatch disagree succesfully-->', data);
+                                   });
+                                }
+                            }
+
+                        }
                     }
                 }
-            }
-        }
-    });
-});/*'use strict';
+
+
+			});
+		});
+
+	});/*'use strict';
 
 /**
  * @ngdoc function
@@ -277,6 +342,130 @@ angular.module('weberApp')
         }
     }
 });*/
+'use strict';
+
+/**
+ * @ngdoc function
+ * @name weberApp.controller:WeberSearchCtrl
+ * @description
+ * # WeberSearchCtrl
+ * Controller of the weberApp
+ */
+angular.module('weberApp')
+    .controller('WeberSearchCtrl', function($scope, $timeout, $q, $auth, Restangular,$route,$window, InterestsService,
+	 										InfinitePosts, $alert, $http,$location,
+	 										CurrentUser, UserService,CurrentUser1,$rootScope,
+	 										SearchActivity, $routeParams, MatchMeResults) {
+	 	$scope.show_no_results = false;
+	 	$scope.searched = false;
+	 	$scope.UserService = UserService;
+	 	$scope.InterestsService = InterestsService;
+	 	if(typeof $rootScope.currentUser === 'undefined'){
+            $http.get('/api/me', {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': $auth.getToken()
+                }
+            }).success(function(user_id) {
+                var params = '{"send_add_requests":1}';
+                Restangular.one('people',JSON.parse(user_id)).get({embedded:params, seed: Math.random()}).then(function(user) {
+
+
+                    $rootScope.currentUser = user;
+                    //$rootScope.temp_user = user;
+                    if($rootScope.currentUser.interests.length == 0 &&
+                        $rootScope.currentUser.questions.length < 4){
+
+                       $location.path("/enter_interests")
+                    }
+
+                    //console.log($scope.currentUser);
+                    $scope.searchActivity = new SearchActivity($rootScope.currentUser);
+                    $scope.searchActivity.getMysearches();
+                    store_search_text($routeParams.query);
+
+                });
+            });
+
+        }else{
+            if($rootScope.currentUser.interests.length == 0 &&
+                $rootScope.currentUser.questions.length < 4){
+                $location.path("/enter_interests")
+            }
+            //console.log($scope.currentUser);
+            $scope.searchActivity = new SearchActivity($scope.currentUser);
+            $scope.searchActivity.getMysearches();
+            store_search_text($routeParams.query);
+        }
+
+        // delete search history item
+        $scope.delete_searchHistoryItem = function(id){
+            $scope.delete_searchHistory = $timeout(function(){
+                $scope.searchActivity.deleteItem(id);
+            },2000);
+        }
+
+        $scope.perfomSearch = function(){
+            $scope.load_data = $timeout(function(){
+                console.log("perform search", $scope.query);
+                $scope.search = true;
+                if($scope.present_search_query == $scope.query) return;
+                if($scope.query){
+                    //alredy present searched query no need to search again
+                    console.log("query", $scope.query);
+                    $location.search('query', $scope.query);
+                    console.log("location", $scope.location);
+                    $scope.matchResults = new MatchMeResults($scope.query, $scope.location);
+                    console.log("match results", $scope.matchResults);
+                    $scope.matchResults.newSearchResults();
+                    if($scope.isAuthenticated()){
+                        store_search_text($scope.query);
+                    }
+                }
+                $scope.present_search_query = $scope.query;
+                $timeout(function(){
+                    $scope.show_no_results = true;
+                },6000);
+            },3000);
+        }
+
+        $scope.storequestion = function(){
+            var question = $scope.enterquestion;
+            $scope.enterquestion = null;
+            Restangular.all('questions').post({
+                'question':question
+            }).then(function(data){
+                //console.log('questions posted',data)
+            });
+        }
+
+        $scope.go = function(query){
+            console.log("query", query);
+            $scope.query = query;
+            $scope.perfomSearch($scope.query);
+        }
+
+        function combine_ids(ids) {
+   				return (ids.length ? "\"" + ids.join("\",\"") + "\"" : "");
+		}
+
+        if($routeParams.query){
+            $scope.search = $routeParams.query;
+            $scope.query = $routeParams.query;
+            $scope.matchResults = new MatchMeResults($routeParams.query,$scope.location);
+            $scope.matchResults.newSearchResults();
+            $scope.searched=true;
+        }
+
+        function store_search_text(searchText){
+            if(searchText){
+                $scope.searchActivity.addSearchText(searchText);
+            }
+        }
+ 	});
+
+
+
 'use strict';
 
 /**
@@ -722,6 +911,284 @@ angular.module('weberApp')
         }
     }]);'use strict';
 
+/**
+ * @ngdoc function
+ * @name weberApp.controller:SignupCtrl
+ * @description
+ * # SignupCtrl
+ * Controller of the weberApp
+ */
+angular.module('weberApp')
+	.controller('SignupCtrl', function($scope, $http, $auth, $location, $alert) {
+		$scope.searched = false;
+	 	$scope.searchBusy = false;
+
+
+	 	$scope.tags = [];
+
+
+
+        $scope.loadTags = function(query) {
+        //return $http.get('/tags?query=' + query);
+        };
+
+        $scope.tagAdded = function(tag) {
+            //console.log('Tag added: ', tag.text);
+            //$scope.tags.push(tag)
+            //alert(tag.text)
+        };
+
+        $scope.tagRemoved = function(tag) {
+           // console.log('Tag removed: ', tag);
+            //console.log($scope.tags)
+        };
+
+        /* starting code of signup goes here */
+
+            /*$scope.registerUser = function() {
+                if (this.formData.gender) {
+
+                var self = this;
+                var interests = [];
+                var querystring = "";
+                for(var temp in $scope.tags){
+                    interests.push($scope.tags[temp].text.toString());
+                    querystring = querystring+$scope.tags[temp].text+" ";
+                }
+                $http.get('/api/similarwords',
+                    {
+                        headers:{'Content-Type':'application/json'},
+                        params : {querystring: querystring.toString() }
+                    }).success(function(interestsSimilarWords) {
+                        //console.log('successdata', interestsSimilarWords)
+                        var data = ['d','i','dd'];
+                        $scope.signup_Busy = $auth.signup({
+                            email: $scope.formData.email,
+                            password: $scope.formData.password,
+                            firstname: $scope.formData.firstname,
+                            lastname: $scope.formData.lastname,
+                            username: $scope.formData.firstname+$scope.formData.lastname,
+                            gender: self.formData.gender,
+                            interests: interests,
+                            interestsimilarwords: interestsSimilarWords
+                        }).then(function (response) {
+
+                            $location.path('/email_details/' + self.formData.email);
+                        }, function (signuperror) {
+                            $scope.signUpError = signuperror;
+                        });
+                    });
+            }else{
+                    $scope.gendererror = true;
+                }
+            };*/
+
+        /* ending of signup code */
+	}).directive('validPasswordC', function () {
+		return {
+			require: 'ngModel',
+			link: function (scope, elm, attrs, ctrl) {
+				ctrl.$parsers.unshift(function (viewValue, $scope) {
+					var noMatch = viewValue != scope.myForm.password.$viewValue;
+					ctrl.$setValidity('noMatch', !noMatch);
+				})
+			}
+		}
+	})
+	.directive('replacesignup', function ($compile) {
+		return {
+			restrict: 'E',
+			replace: true,
+			link: function (scope, element, attrs) {
+				element.click(function(){
+				   var html ='<image src="/static/app/images/pleasewait.gif" style="width:;">';
+				   var e =$compile(html)(scope);
+				   element.replaceWith(e);
+				});
+			}
+		};
+	});'use strict';
+
+/**
+ * @ngdoc function
+ * @name weberApp.controller:MessageCtrl
+ * @description
+ * # FriendsCtrl
+ * Controller of the weberApp
+ */
+angular.module('weberApp')
+  .controller('MessageCtrl', function($scope, $auth) {
+		console.log("surya muppalla");
+		console.log("dgfdf dfg dfygdsf dsfsdfdsfysdgfgds fgdsf ");
+	});'use strict';
+/**
+ * @ngdoc function
+ * @name weberApp.controller:MainCtrl
+ * @description
+ * # MainCtrl
+ * Controller of the weberApp
+ */
+angular.module('weberApp')
+	.controller('MainCtrl', function($scope, $timeout, $auth, $rootScope,Restangular, InfinitePosts,questions,
+	                                $alert, $http, CurrentUser,sortIListService, InterestsService,$location,
+	                                UserService, fileUpload, MatchButtonService, socket) {
+
+	    $scope.show_none_posts = false;
+	    $scope.load_main = $timeout(function(){
+            $timeout(function(){
+                $scope.show_none_posts = true;
+            },4000);
+            $scope.UserService = UserService;
+            $scope.MatchButtonService = MatchButtonService;
+            $scope.sortIListService = sortIListService;
+            $scope.InterestsService = InterestsService;
+            //console.log("====interests service", $scope.InterestsService)
+            $http.get('/api/me', {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': $auth.getToken()
+                }
+            }).success(function(user_id) {
+                //console.log('authorize token', $auth.getToken())
+                Restangular.one('people',JSON.parse(user_id)).get({seed:Math.random()},{'Authorization': $auth.getToken()}).then(function(user) {
+                    //console.log('user==>', user)
+                    $rootScope.currentUser = user;
+
+
+                    // checking enter minimum interests
+                    if($rootScope.currentUser.interests.length == 0 && $rootScope.currentUser.questions.length < 4){
+                        //console.log('interests length', $rootScope.currentUser.questions.length, $rootScope.currentUser.interests.length)
+                        $location.path("/enter_interests")
+                    }
+
+
+
+                    //delete the post from infinite posts of the current user
+                    function checkdeletepost(post_id){
+                        var status = false;
+                        var post = null;
+                        for(var k in $scope.infinitePosts.posts){
+                            if($scope.infinitePosts.posts[k]._id == post_id &&
+                                $scope.infinitePosts.posts[k].author == $rootScope.currentUser._id){
+                                    status = true;
+                                    post =  $scope.infinitePosts.posts[k];
+                                }
+                        }
+                        return ({status:status, post:post});
+                    }
+                    $scope.confirm_delete = function(get_post_id){
+                        var result = checkdeletepost(get_post_id);
+                        if(result.status){
+                            $scope.infinitePosts.deletePost(result.post);
+                        }
+                    }
+                    // questions section functions
+                    $scope.questions = new questions($rootScope.currentUser);
+                    $scope.questions.getallquestions();
+
+
+                    $scope.answered = function(question, ans){
+                        $scope.questions.updateAnswer(question, ans, $rootScope.currentUser._id);
+                        //console.log(question, ans)
+                    }
+
+                    $scope.checkAnswer = function(question_id){
+                        data = $scope.questions.checkAnswer(question_id);
+                        return data;
+                    }
+                    // end of questions section
+                    var loadPostIds = angular.copy($rootScope.currentUser.friends);
+                    loadPostIds.push($rootScope.currentUser._id);
+                    loadPostIds = "[\"" + loadPostIds.join("\",\"") + "\"]";
+
+                    $scope.infinitePosts = new InfinitePosts($rootScope.currentUser, loadPostIds);
+                    $scope.infinitePosts.getEarlyPosts();
+
+                    $scope.submit_post = function(){
+                         if($scope.new_post) {
+                            $scope.new_submit_busy_post = $http({
+                                url: '/api/simwords',
+                                method: "GET",
+                                params: {querystring: $scope.new_post}
+                            })
+                                .success(function (similarwords) {
+
+                                    $scope.infinitePosts.addPost($scope.new_post, similarwords, $rootScope.server_file_path);
+                                    $scope.new_post = '';
+                                });
+
+                        }else{
+                            return false;
+                        }
+                    };
+                    socket.on('postNotifications', function(data){
+
+                        if(data.data.postnotific){
+                            if($rootScope.currentUser.friends.indexOf(data.author) == -1){
+                                //console.log('no a friend')
+                            }else if($rootScope.currentUser.friends.indexOf(data.author != -1) && data.postid != 'undefined'){
+                                $scope.infinitePosts.loadNotificPost(data.postid, data.author);
+                            }else{
+                                //console.log('nothing to do')
+                            }
+                        }
+                    });
+
+                    $scope.pushToPost = function(postauthor, postid){
+                        //console.log('match user id', user._id)
+                        var index = null;
+                        var posts = $scope.infinitePosts.posts;
+                        for(var temp in posts){
+                            if(posts[temp]._id == postid){
+                                index = temp;
+                                postauthor = posts[temp].author;
+                                postid = posts[temp]._id;
+
+                                var iPeople = posts[temp].interestedPeople;
+                                for(var i in iPeople){
+                                    if(iPeople[i].interested_person == $rootScope.currentUser._id){
+                                        return true;
+                                    }
+                                }
+                                iPeople.push({'interested_person': $rootScope.currentUser._id, 'match_date': new Date()});
+                                //console.log('post author-->', postauthor)
+                                MatchButtonService.match(postauthor, postid , $rootScope.currentUser._id).then(function(data){
+                                    //console.log('match agree succesfully-->', data);
+                                });
+
+                            }
+                        }
+                    }
+
+                    $scope.deleteFromPost = function(postauthor, postid){
+
+                        //console.log('unmatch user id', user._id)
+                        var posts = $scope.infinitePosts.posts;
+
+                        for(var temp in posts){
+                            // if post contains with post id
+                            if(posts[temp]._id == postid){
+                                var iPeople = posts[temp].interestedPeople;
+                                for(var i in iPeople){
+                                    if(iPeople[i].interested_person == $rootScope.currentUser._id){
+                                       iPeople.splice(i,1);
+                                       MatchButtonService.unmatch(postauthor, postid, $rootScope.currentUser._id).then(function(data){
+                                            //console.log('unmatch disagree succesfully-->', data);
+                                       });
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+
+
+                });
+            });
+        },1000);
+	});
+'use strict';
+
 angular.module('weberApp')
     .controller('indexCtrl', function($auth,$scope, $window, CurrentUser,$route,$rootScope,
                                       $alert,$timeout,InstanceSearchHistory, PostService,
@@ -731,9 +1198,6 @@ angular.module('weberApp')
         $scope.isAuthenticated = function() {
             return $auth.isAuthenticated();
         };
-
-        $scope.get_screen_height = window.innerHeight-52;
-        $scope.get_inner_div_height = (window.innerHeight-210)/2;
         $scope.UserService = UserService;
         $rootScope.notifications_count = 0;
         $scope.instanceSearchHistory = {};
@@ -755,9 +1219,7 @@ angular.module('weberApp')
             });
 
            socket.on('friend_notification', function(data){
-                console.log('--------------', data)
                 if(data.status){
-                    console.log('friend request got with')
                     Restangular.one('people', $rootScope.currentUser._id).get({seed: Math.random()})
                     .then(function(user) {
                             $rootScope.currentUser = user;
@@ -1498,420 +1960,170 @@ angular.module('weberApp')
 
 });
 'use strict';
-/**
- * @ngdoc function
- * @name weberApp.controller:MainCtrl
- * @description
- * # MainCtrl
- * Controller of the weberApp
- */
-angular.module('weberApp')
-	.controller('MainCtrl', function($scope, $timeout, $auth, $rootScope,Restangular, InfinitePosts,questions,
-	                                $alert, $http, CurrentUser,sortIListService, InterestsService,$location,
-	                                UserService, fileUpload, MatchButtonService, socket) {
-
-	    $scope.show_none_posts = false;
-	    $scope.load_main = $timeout(function(){
-            $timeout(function(){
-                $scope.show_none_posts = true;
-            },4000);
-            $scope.UserService = UserService;
-            $scope.MatchButtonService = MatchButtonService;
-            $scope.sortIListService = sortIListService;
-            $scope.InterestsService = InterestsService;
-            //console.log("====interests service", $scope.InterestsService)
-            $http.get('/api/me', {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': $auth.getToken()
-                }
-            }).success(function(user_id) {
-                //console.log('authorize token', $auth.getToken())
-                Restangular.one('people',JSON.parse(user_id)).get({seed:Math.random()},{'Authorization': $auth.getToken()}).then(function(user) {
-                    //console.log('user==>', user)
-                    $rootScope.currentUser = user;
-
-
-                    // checking enter minimum interests
-                    if($rootScope.currentUser.interests.length == 0 && $rootScope.currentUser.questions.length < 4){
-                        //console.log('interests length', $rootScope.currentUser.questions.length, $rootScope.currentUser.interests.length)
-                        $location.path("/enter_interests")
-                    }
-
-
-
-                    //delete the post from infinite posts of the current user
-                    function checkdeletepost(post_id){
-                        var status = false;
-                        var post = null;
-                        for(var k in $scope.infinitePosts.posts){
-                            if($scope.infinitePosts.posts[k]._id == post_id &&
-                                $scope.infinitePosts.posts[k].author == $rootScope.currentUser._id){
-                                    status = true;
-                                    post =  $scope.infinitePosts.posts[k];
-                                }
-                        }
-                        return ({status:status, post:post});
-                    }
-                    $scope.confirm_delete = function(get_post_id){
-                        var result = checkdeletepost(get_post_id);
-                        if(result.status){
-                            $scope.infinitePosts.deletePost(result.post);
-                        }
-                    }
-                    // questions section functions
-                    $scope.questions = new questions($rootScope.currentUser);
-                    $scope.questions.getallquestions();
-
-
-                    $scope.answered = function(question, ans){
-                        $scope.questions.updateAnswer(question, ans, $rootScope.currentUser._id);
-                        //console.log(question, ans)
-                    }
-
-                    $scope.checkAnswer = function(question_id){
-                        data = $scope.questions.checkAnswer(question_id);
-                        return data;
-                    }
-                    // end of questions section
-                    var loadPostIds = angular.copy($rootScope.currentUser.friends);
-                    loadPostIds.push($rootScope.currentUser._id);
-                    loadPostIds = "[\"" + loadPostIds.join("\",\"") + "\"]";
-
-                    $scope.infinitePosts = new InfinitePosts($rootScope.currentUser, loadPostIds);
-                    $scope.infinitePosts.getEarlyPosts();
-
-                    $scope.submit_post = function(){
-                         if($scope.new_post) {
-                            $scope.new_submit_busy_post = $http({
-                                url: '/api/simwords',
-                                method: "GET",
-                                params: {querystring: $scope.new_post}
-                            })
-                                .success(function (similarwords) {
-
-                                    $scope.infinitePosts.addPost($scope.new_post, similarwords, $rootScope.server_file_path);
-                                    $scope.new_post = '';
-                                });
-
-                        }else{
-                            return false;
-                        }
-                    };
-                    socket.on('postNotifications', function(data){
-
-                        if(data.data.postnotific){
-                            if($rootScope.currentUser.friends.indexOf(data.author) == -1){
-                                //console.log('no a friend')
-                            }else if($rootScope.currentUser.friends.indexOf(data.author != -1) && data.postid != 'undefined'){
-                                $scope.infinitePosts.loadNotificPost(data.postid, data.author);
-                            }else{
-                                //console.log('nothing to do')
-                            }
-                        }
-                    });
-
-                    $scope.pushToPost = function(postauthor, postid){
-                        //console.log('match user id', user._id)
-                        var index = null;
-                        var posts = $scope.infinitePosts.posts;
-                        for(var temp in posts){
-                            if(posts[temp]._id == postid){
-                                index = temp;
-                                postauthor = posts[temp].author;
-                                postid = posts[temp]._id;
-
-                                var iPeople = posts[temp].interestedPeople;
-                                for(var i in iPeople){
-                                    if(iPeople[i].interested_person == $rootScope.currentUser._id){
-                                        return true;
-                                    }
-                                }
-                                iPeople.push({'interested_person': $rootScope.currentUser._id, 'match_date': new Date()});
-                                //console.log('post author-->', postauthor)
-                                MatchButtonService.match(postauthor, postid , $rootScope.currentUser._id).then(function(data){
-                                    //console.log('match agree succesfully-->', data);
-                                });
-
-                            }
-                        }
-                    }
-
-                    $scope.deleteFromPost = function(postauthor, postid){
-
-                        //console.log('unmatch user id', user._id)
-                        var posts = $scope.infinitePosts.posts;
-
-                        for(var temp in posts){
-                            // if post contains with post id
-                            if(posts[temp]._id == postid){
-                                var iPeople = posts[temp].interestedPeople;
-                                for(var i in iPeople){
-                                    if(iPeople[i].interested_person == $rootScope.currentUser._id){
-                                       iPeople.splice(i,1);
-                                       MatchButtonService.unmatch(postauthor, postid, $rootScope.currentUser._id).then(function(data){
-                                            //console.log('unmatch disagree succesfully-->', data);
-                                       });
-                                    }
-                                }
-
-                            }
-                        }
-                    }
-
-
-                });
-            });
-        },1000);
-	});
-'use strict';
-/**
- * @ngdoc function
- * @name weberApp.controller:MainCtrl
- * @description
- * # MainCtrl
- * Controller of the weberApp
- */
-angular.module('weberApp')
-	.controller('PostLoadController', function($http, $auth, InterestsService, Restangular, $scope,
-	                                           $routeParams, PostService, InfinitePosts,MatchButtonService) {
-
-	    $scope.postid = $routeParams.postid;
-	    $scope.MatchButtonService = MatchButtonService;
-	    $scope.InterestsService = InterestsService;
-	    $http.get('/api/me', {
-			headers: {
-				'Content-Type': 'application/json',
-				'Authorization': $auth.getToken()
-			}
-		}).success(function(user_id) {
-			Restangular.one('people',JSON.parse(user_id)).get({seed:Math.random()}).then(function(user) {
-
-                $scope.user = user;
-				var loadPostIds = angular.copy(user.friends);
-
-                if (user.friends.length !== 0) {
-
-				    var params = '{"_id": {"$in":["'+($scope.user.friends).join('", "') + '"'+']}}';
-
-					Restangular.all('people').getList({where :params}).then(function(friend) {
-						$scope.friends = friend;
-					});
-				}
-
-				$scope.infinitePosts = new InfinitePosts(user, []);
-				$scope.infinitePosts.getSpecificPost($routeParams);
-
-                $scope.confirm_delete = function(){
-                    $scope.infinitePosts.deletePost($scope.infinitePosts.posts[0], user);
-                }
-
-                $scope.pushToPost = function(postauthor, postid){
-                    var posts = $scope.infinitePosts.posts;
-
-                    for(var temp in posts){
-                        if(posts[temp]._id == postid){
-                            var iPeople = posts[temp].interestedPeople;
-                            for(var i in iPeople){
-                                if(iPeople[i].interested_person == user._id){
-                                    return true;
-                                }
-                            }
-                            iPeople.push({'interested_person': user._id, 'match_date': new Date()});
-                            //console.log('post author-->', postauthor)
-                            //console.log('postauthor-->', postauthor)
-                            //console.log('postid -->', postid)
-                            //console.log('user id-->', user._id)
-                            MatchButtonService.match(postauthor, postid , user._id).then(function(data){
-                                //console.log('match agree succesfully-->', data);
-                            });
-
-                        }
-                    }
-	            }
-
-                $scope.deleteFromPost = function(postauthor, postid){
-
-                    //console.log('unmatch user id', user._id)
-                    var posts = $scope.infinitePosts.posts;
-
-                    for(var temp in posts){
-                        // if post contains with post id
-                        if(posts[temp]._id == postid){
-                            var iPeople = posts[temp].interestedPeople;
-                            for(var i in iPeople){
-                                if(iPeople[i].interested_person == user._id){
-                                   iPeople.splice(i,1);
-                                   MatchButtonService.unmatch(postauthor, postid, user._id).then(function(data){
-                                        //console.log('unmatch disagree succesfully-->', data);
-                                   });
-                                }
-                            }
-
-                        }
-                    }
-                }
-
-
-			});
-		});
-
-	});'use strict';
 
 /**
  * @ngdoc function
- * @name weberApp.controller:SignupCtrl
+ * @name weberApp.controller:ForgotPasswordCtrl
  * @description
- * # SignupCtrl
+ * # ForgotPasswordCtrl
  * Controller of the weberApp
  */
 angular.module('weberApp')
-	.controller('SignupCtrl', function($scope, $http, $auth, $location, $alert) {
-		$scope.searched = false;
-	 	$scope.searchBusy = false;
+	.directive('passwordrecovery', function ($compile,$location, CurrentUser, Restangular, $routeParams, friendsActivity) {
+        return {
+            restrict: 'E',
+            replace: true,
+            link: function (scope, element, attrs) {},
+            controller:function($scope, $http, $element, $attrs, $transclude){
 
+                $scope.sendPassword = function(){
 
-	 	$scope.tags = [];
-
-
-
-        $scope.loadTags = function(query) {
-        //return $http.get('/tags?query=' + query);
-        };
-
-        $scope.tagAdded = function(tag) {
-            //console.log('Tag added: ', tag.text);
-            //$scope.tags.push(tag)
-            //alert(tag.text)
-        };
-
-        $scope.tagRemoved = function(tag) {
-           // console.log('Tag removed: ', tag);
-            //console.log($scope.tags)
-        };
-
-        /* starting code of signup goes here */
-
-            /*$scope.registerUser = function() {
-                if (this.formData.gender) {
-
-                var self = this;
-                var interests = [];
-                var querystring = "";
-                for(var temp in $scope.tags){
-                    interests.push($scope.tags[temp].text.toString());
-                    querystring = querystring+$scope.tags[temp].text+" ";
-                }
-                $http.get('/api/similarwords',
-                    {
-                        headers:{'Content-Type':'application/json'},
-                        params : {querystring: querystring.toString() }
-                    }).success(function(interestsSimilarWords) {
-                        //console.log('successdata', interestsSimilarWords)
-                        var data = ['d','i','dd'];
-                        $scope.signup_Busy = $auth.signup({
-                            email: $scope.formData.email,
-                            password: $scope.formData.password,
-                            firstname: $scope.formData.firstname,
-                            lastname: $scope.formData.lastname,
-                            username: $scope.formData.firstname+$scope.formData.lastname,
-                            gender: self.formData.gender,
-                            interests: interests,
-                            interestsimilarwords: interestsSimilarWords
-                        }).then(function (response) {
-
-                            $location.path('/email_details/' + self.formData.email);
-                        }, function (signuperror) {
-                            $scope.signUpError = signuperror;
+                    $scope.password_recovery_busy = $http.post('/forgotpasswordlink', {email:$scope.email}).
+                        success(function(data, status, headers, config) {
+                            // this callback will be called asynchronously
+                            // when the response is available
+                            var html = '<b>password link has been sent to your email</b><br><p>Please check your email</p>';
+                            var e =$compile(html)($scope);
+                            $element.replaceWith(e);
+                        }).
+                        error(function(error) {
+                            // called asynchronously if an error occurs
+                            // or server returns response with an error status.
+                            var html = '<b>your email does not exist, Please check it once..</b>';
+                            var e =$compile(html)($scope);
+                            $element.replaceWith(e);
                         });
-                    });
-            }else{
-                    $scope.gendererror = true;
+
+
                 }
-            };*/
+            }
+        };
+    })
+    .directive('changepassworddirective', function ($compile, $location, $timeout, CurrentUser, Restangular, $routeParams, friendsActivity) {
+        return {
+            restrict: 'E',
+            replace: true,
+            link: function (scope, element, attrs) {},
+            controller:function($scope, $http, $element, $attrs, $transclude, $routeParams){
 
-        /* ending of signup code */
-	}).directive('validPasswordC', function () {
-		return {
-			require: 'ngModel',
-			link: function (scope, elm, attrs, ctrl) {
-				ctrl.$parsers.unshift(function (viewValue, $scope) {
-					var noMatch = viewValue != scope.myForm.password.$viewValue;
-					ctrl.$setValidity('noMatch', !noMatch);
-				})
-			}
-		}
-	})
-	.directive('replacesignup', function ($compile) {
-		return {
-			restrict: 'E',
-			replace: true,
-			link: function (scope, element, attrs) {
-				element.click(function(){
-				   var html ='<image src="/static/app/images/pleasewait.gif" style="width:;">';
-				   var e =$compile(html)(scope);
-				   element.replaceWith(e);
-				});
-			}
-		};
-	});'use strict';
+                var user_name = $routeParams.user_name;
+                var password_random_string = $routeParams.password_random_string;
 
-/**
- * @ngdoc function
- * @name weberApp.controller:EmailCtrl
- * @description
- * # EmailCtrl
- * Controller of the weberApp
- */
-angular.module('weberApp')
-	.controller('EmailCtrl', function($http, $timeout, $route, Restangular, $scope, $auth, $alert, $location, $routeParams) {
+                console.log(user_name+password_random_string);
 
-        Restangular.one('people',$routeParams.objectId).get({seed:Math.random()}).then(function(user) {
-              $scope.user = user;
-              if($routeParams.rand_string == $scope.user.random_string){
-                if($scope.user.email_confirmed == true){
-                    $scope.user_email_confirmed = "your email is already activated";
-                    $location.path('/home');
-                    return;
-                }
-                $scope.user.patch({
-                        email_confirmed : true
-                },{},{'If-Match': $scope.user._etag}).then(function(response){
-                        var interestsAlert = $alert({
-                            title: 'Success',
-                            content: 'Email Confirmed',
-                            placement: 'top',
-                            type: 'success',
-                            show: true
-                        });
-                        $timeout(function() {
-                            interestsAlert.hide();
-                        }, 5000);
-                        $timeout(function(){
-                            $location.path('/home');
+                $scope.passwordButton = function(){
+
+                    $scope.new_password = $http.post('/get_new_hash_password', {
+                            user_name:$routeParams.user_name,
+                            new_password:$scope.formData.password
                         })
-                });
-              }
-        });
+                        .success(function(data, status, headers, config) {
+                            //console.log("========hashed password======");
+                            //console.log(data);
+                            $scope.hashed_password = data;
+
+                            var Update_Password = Restangular.one('people', $routeParams.user_name).get({seed:Math.random()});
+
+                            Update_Password.then(function(response){
+                                $scope.user = response;
+
+                                //console.log("=====user details===");
+                                //console.log($scope.user);
+
+                                $scope.user.patch({
+                                    'password':{
+                                        'password':$scope.hashed_password,
+                                        'password_updated':new Date()
+                                    }
+                                }).then(function(response){
+                                    // this callback will be called asynchronously
+                                    // when the response is available
+
+                                    //console.log("===after patch=====");
+                                    //console.log(response);
+                                    var html = '<b>your password has been changed</b>';
+                                    var e =$compile(html)($scope);
+                                    $element.replaceWith(e);
+                                    $timeout(function(){
+                                        $location.path('/login');
+                                    },2000);
+
+
+                                });
+                            });
+                        }).
+                        error(function(error) {
+                            // called asynchronously if an error occurs
+                            // or server returns response with an error status.
+                            var html = '<b>your email does not exist, Please check it once..</b>';
+                            var e =$compile(html)($scope);
+                            $element.replaceWith(e);
+                    });
+                }
+            }
+        };
     });'use strict';
 
 /**
  * @ngdoc function
- * @name weberApp.controller:WeberSearchCtrl
+ * @name weberApp.controller:UserprofileCtrl
  * @description
- * # WeberSearchCtrl
+ * # UserprofileCtrl
  * Controller of the weberApp
  */
 angular.module('weberApp')
-    .controller('WeberSearchCtrl', function($scope, $timeout, $q, $auth, Restangular,$route,$window, InterestsService,
-	 										InfinitePosts, $alert, $http,$location,
-	 										CurrentUser, UserService,CurrentUser1,$rootScope,
-	 										SearchActivity, $routeParams, MatchMeResults) {
-	 	$scope.show_no_results = false;
-	 	$scope.searched = false;
-	 	$scope.UserService = UserService;
-	 	$scope.InterestsService = InterestsService;
-	 	if(typeof $rootScope.currentUser === 'undefined'){
+	.controller('UserprofileCtrl', function($scope, $routeParams,$templateCache, sortIListService, questions,
+	                                        Restangular, InfinitePosts, UserService,MatchButtonService,$rootScope,
+	                                        CurrentUser, InterestsService, friendsActivity) {
+
+		$scope.UserService = UserService;
+		$scope.MatchButtonService = MatchButtonService;
+		$scope.sortIListService = sortIListService;
+		$scope.InterestsService = InterestsService;
+		$scope.show_only_profile_pic = false;
+        $scope.show_only_p_user_pic = true;
+        $scope.show_c_user_info = false;
+        $scope.show_p_user_info = true;
+
+        Restangular.one('people', $routeParams.username).get({ seed : Math.random()}).then(function(profileuser) {
+    		// profile user information
+	    	$scope.profileuser = profileuser;
+            // questions section functions
+            $scope.questions = new questions(profileuser);
+            //$scope.questions.getcquestions();
+            $scope.questions.getUserQuestions();
+
+            if ( $scope.profileuser.friends.length !== 0) {
+                var params = '{"_id": {"$in":["'+($scope.profileuser.friends).join('", "') + '"'+']}}'
+                Restangular.all('people').getList({
+                    where:params,
+                    seed:Math.random()
+                }).then(function(friends) {
+                    $scope.friends = friends;
+                });
+            }
+
+            var loadPostIds = [];
+            loadPostIds.push(profileuser._id);
+            loadPostIds = "[\"" + loadPostIds.join("\",\"") + "\"]";
+            $scope.infinitePosts = new InfinitePosts($scope.profileuser, loadPostIds);
+            $scope.infinitePosts.getEarlyPosts();
+
+            $scope.checkAnswer = function(question_id){
+                data = $scope.questions.checkAnswer(question_id);
+                return data;
+            }
+
+             $scope.answered = function(question, ans){
+                 $scope.questions.updateAnswer(question, ans, $rootScope.currentUser._id);
+                 //console.log(question, ans)
+             }
+
+
+
+
+        // end of profile user information
+        if($rootScope.currentUser === 'undefined'){
             $http.get('/api/me', {
                 headers: {
                     'Content-Type': 'application/json',
@@ -1920,1161 +2132,87 @@ angular.module('weberApp')
             }).success(function(user_id) {
                 var params = '{"send_add_requests":1}';
                 Restangular.one('people',JSON.parse(user_id)).get({embedded:params, seed: Math.random()}).then(function(user) {
-
-
                     $rootScope.currentUser = user;
-                    //$rootScope.temp_user = user;
-                    if($rootScope.currentUser.interests.length == 0 &&
-                        $rootScope.currentUser.questions.length < 4){
-
-                       $location.path("/enter_interests")
-                    }
-
-                    //console.log($scope.currentUser);
-                    $scope.searchActivity = new SearchActivity($rootScope.currentUser);
-                    $scope.searchActivity.getMysearches();
-                    store_search_text($routeParams.query);
-
+                    questionOperations();
                 });
             });
 
         }else{
-            if($rootScope.currentUser.interests.length == 0 &&
-                $rootScope.currentUser.questions.length < 4){
-                $location.path("/enter_interests")
+            //console.log('else part user', $rootScope.currentUser)
+            questionOperations();
+        }
+
+
+        function questionOperations(){
+
+            $scope.checkYouAnswered = function(question_id){
+                data = $scope.questions.checkYouAnswered(question_id, $rootScope.currentUser);
+                return data;
             }
-            //console.log($scope.currentUser);
-            $scope.searchActivity = new SearchActivity($scope.currentUser);
-            $scope.searchActivity.getMysearches();
-            store_search_text($routeParams.query);
-        }
 
-        // delete search history item
-        $scope.delete_searchHistoryItem = function(id){
-            $scope.delete_searchHistory = $timeout(function(){
-                $scope.searchActivity.deleteItem(id);
-            },2000);
-        }
-
-        $scope.perfomSearch = function(){
-            $scope.load_data = $timeout(function(){
-                $scope.search = true;
-                if($scope.present_search_query == $scope.query) return;
-                if($scope.query){
-                    //alredy present searched query no need to search again
-                    $location.search('query', $scope.query);
-                    $scope.matchResults = new MatchMeResults($scope.query, $scope.location);
-                    $scope.matchResults.newSearchResults();
-                    if($scope.isAuthenticated()){
-                        store_search_text($scope.query);
-                    }
-                }
-                $scope.present_search_query = $scope.query;
-                $timeout(function(){
-                    $scope.show_no_results = true;
-                },6000);
-            },3000);
-        }
-
-        $scope.storequestion = function(){
-            var question = $scope.enterquestion;
-            $scope.enterquestion = null;
-            Restangular.all('questions').post({
-                'question':question
-            }).then(function(data){
-                //console.log('questions posted',data)
-            });
-        }
-
-        $scope.go = function(query){
-            console.log("query", query);
-            $scope.query = query;
-            $scope.perfomSearch($scope.query);
-        }
-
-        function combine_ids(ids) {
-   				return (ids.length ? "\"" + ids.join("\",\"") + "\"" : "");
-		}
-
-        if($routeParams.query){
-            $scope.search = $routeParams.query;
-            $scope.query = $routeParams.query;
-            $scope.matchResults = new MatchMeResults($routeParams.query,$scope.location);
-            $scope.matchResults.newSearchResults();
-            $scope.searched=true;
-        }
-
-        function store_search_text(searchText){
-            if(searchText){
-                $scope.searchActivity.addSearchText(searchText);
+            $scope.youAnswered = function(question, ans){
+                //console.log('------------->>> user id', $rootScope.currentUser._id);
+                $scope.questions.updateUser2(question, ans, $rootScope.currentUser._id);
+                //console.log(question, ans)
             }
-        }
- 	});
-
-
-
-'use strict';
-
-/**
- * @ngdoc function
- * @name weberApp.controller:EmailDetailsCtrl
- * @description
- * # EmailDetailsCtrl
- * Controller of the weberApp
- */
-angular.module('weberApp')
-	.controller('enterInterestsCtrl', function($timeout, questions, InterestsService, $http,
-	 Restangular, $scope, $auth, $alert, $location, $routeParams, $rootScope) {
-
-        //var element = $routeParams.userId;
-        //console.log(element)
-        $scope.email = $routeParams.email;
-        //console.log($scope.user);
-        $scope.show_interests = true;
-        $scope.show_questions = false;
-        $scope.final_interests_array = [];
-
-        $scope.$watchCollection('data.tags',function(val){
-            $scope.final_interests_array = val;
-        });
-
-        $http.get('/api/me', {
-			headers: {
-				'Content-Type': 'application/json',
-				'Authorization': $auth.getToken()
-			}
-		}).success(function(userId) {
-            Restangular.one('people', JSON.parse(userId)).get({seed:Math.random()}).then(function(user) {
-                $rootScope.currentUser = user;
-                if($rootScope.currentUser.email_confirmed == false){
-                    var userNameAlert = $alert({
-                        title: 'Thanks for Registering: ',
-                        content: 'Your email is not confirmed',
-                        placement: 'top-left',
-                        type: 'danger',
-                        show: true
-                    });
-                }
-
-                $scope.afterFinishQuestions = function(){
-                    $location.path('/home');
-                }
-                // questions section functions
-                $scope.questions = new questions(user);
-                $scope.questions.getallquestions();
-
-                $scope.answered = function(question, ans){
-
-                    for(var temp in $rootScope.currentUser.questions){
-                        if($rootScope.currentUser.questions[temp].questionid == question){
-                            $rootScope.currentUser.questions[temp].answer = ans;
-                            $scope.questions.updateAnswer(question, ans, $rootScope.currentUser._id);
-                            return;
-                        }
-                    }
-
-                    $rootScope.currentUser.questions.push({'questionid':question, 'answer': ans});
-                    //console.log('pushed answereds', $rootScope.currentUser.questions)
-                    $scope.questions.updateAnswer(question, ans, $rootScope.currentUser._id);
-                    return;
-                }
-
-                $scope.checkAnswer = function(question_id){
-                    data = $scope.questions.checkAnswer(question_id);
-                    return data;
-                }
-                // end of questions section
-
-                if($rootScope.currentUser.interests.length){
-                    // success show
-                    $scope.show_interests = false;
-                    $scope.show_questions = true;
-                }
-                else{
-                    // success hide
-                    $scope.show_interests = true;
-                    $scope.show_questions = false;
-                }
-                $scope.newUserInterests = function(){
-                    for(var temp in $rootScope.currentUser.interests){
-                        $scope.final_interests_array.push(InterestsService.get($rootScope.currentUser.interests[temp]).interest_string)
-                    }
-                    $scope.Interests_busy = $timeout(function() {
-                        $http.post('/get_interested_ids',
-                        {
-                            interests: $scope.final_interests_array,
-                            username: $rootScope.currentUser.username
-                        })
-                        .success(function(data, status, headers, config) {
-                            //console.log("======return success of interests of ids",data);
-                            $rootScope.currentUser.interests = data.interests;
-                            $scope.show_interests = false;
-                            $scope.show_questions = true;
-                            var interestsAlert = $alert({
-                                title: 'Success',
-                                content: 'Updated your Interests',
-                                placement: 'top',
-                                type: 'success',
-                                show: true
-                            });
-                            $timeout(function() {
-                                interestsAlert.hide();
-                            }, 5000);
-                        })
-                        .error(function(data, status, headers, config) {
-                            //console.log("====error of interests", data.data)
-                        });
-                    },2000);
-                }
-
-            });
-        });
-    });'use strict';
-
-/**
- * @ngdoc function
- * @name weberApp.controller:FriendsCtrl
- * @description
- * # FriendsCtrl
- * Controller of the weberApp
- */
-angular.module('weberApp')
-  .controller('FriendsCtrl', function($scope, $auth, Restangular, InterestsService,
-                InfinitePosts, $alert, $http, CurrentUser, UserService, $rootScope) {
-		$scope.UserService = UserService;
-		$scope.InterestsService = InterestsService;
-		$http.get('/api/me', {
-			headers: {
-				'Content-Type': 'application/json'
-			}
-		}).success(function(user_id) {
-
-		    var embedded = '{"send_add_requests":1}';
-			Restangular.one('people',JSON.parse(user_id)).get({ embeddded: embedded, seed:Math.random()}).then(function(user) {
-
-                $scope.suggested_people = [];
-				$scope.user = user;
-				$scope.show_only_profile_pic = true;
-                $scope.show_only_p_user_pic = false;
-
-                if (user.friends.length !== 0) {
-				    var params = '{"_id": {"$in":["'+($scope.user.friends).join('", "') + '"'+']}}';
-					Restangular.all('people').getList({where :params}).then(function(friend) {
-					   // console.log('===friends====')
-					   // console.log(friend)
-						$scope.friends = friend;
-					});
-				}
-                // getting suggested friends
-
-                 //console.log('before request', $rootScope.currentUser)
-                 var req = {
-
-                        method: 'POST',
-                        url: '/api/suggestedFriends',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        data: {
-                            location: $rootScope.currentUser['location']['state'],
-                            friends: $rootScope.currentUser['friends'],
-                            username: $rootScope.currentUser['username'],
-                            _id: $rootScope.currentUser['_id'],
-                            seed: Math.random()
-                        }
-                 }
-                 $http(req).then(function(data){
-                     //console.log('-----------at suggested people', data)
-                     if(data.data.status != false){
-                        //console.log("user suggestion", data.data.data)
-                        $scope.suggested_people = data.data.data;
-                        //console.log($scope.suggested_people)
-                     }
-                 })
-
-
-
-			});
-		});
-
-		$scope.filterFunction = function(element) {
-            return element.name.match(/^$scope.searchFriend/) ? true : false;
-        };
-	});'use strict';
-/**
- * @ngdoc service
- * @name weberApp.weberService
- * @description
- * # weberService
- * Service in the weberApp.
- */
-angular.module('weberApp')
-
-
-        .factory('socket', function (socketFactory) {
-          var myIoSocket = io.connect('http://localhost:8080/');
-
-          var socket = socketFactory({
-            ioSocket: myIoSocket
-          });
-          return socket;
-        })
-
-       .factory('questions', function($http, Restangular,$auth) {
-
-        var questions = function(currentuser){
-            this.currentuser = currentuser;
-            this.allquestions = [];
-            this.cuserquestions = [];
-            this.user2 = {},
-            this.canswers = this.currentuser.questions;
-            //console.log(this.currentuser.username)
-        }
-
-        questions.prototype.getallquestions = function(){
-          Restangular.all('questions').getList().then(function(data){
-            this.allquestions.push.apply(this.allquestions, data);
-
-          }.bind(this));
-        }
-
-        function combine_ids(ids) {
-   			return (ids.length ? "\"" + ids.join("\",\"") + "\"" : "");
-		}
-
-        questions.prototype.getUserQuestions = function(){
-            var cuserquestionids = []
-
-            for(var temp in this.currentuser.questions){
-                cuserquestionids.push((this.currentuser.questions[temp].questionid).toString())
-            }
-            //console.log('cuser question ids', cuserquestionids)
-
-            var params = '{"_id": {"$in":['+combine_ids(cuserquestionids)+']}}';
-
-            //console.log(params)
-            Restangular.all('questions').getList({where:params, seed: Math.random()}).then(function(data){
-            this.cuserquestions.push.apply(this.cuserquestions, data);
-          }.bind(this));
-
-        }
-
-        questions.prototype.updateAnswer = function(question, answer, cuser_id){
-            //console.log('----------------service------------')
-            var self = this;
-            var req = {
-                method: 'POST',
-                url: '/api/updateAnswer',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                data: {
-                        question : question,
-		                answer : answer,
-		                cuserid : cuser_id,
-		                seed:Math.random()
+             // end of questions section
+            if($rootScope.currentUser._id !== $scope.profileuser._id){
+                var friendsactivity = new friendsActivity($rootScope.currentUser, $scope.profileuser);
+                //console.log(friendsactivity)
+                $scope.check_relation = function(){
+                    $scope.relation = friendsactivity.getRelation();
+                    return $scope.relation;
                 }
             }
 
-            $http(req).success(function (data) {
-                for(var temp in self.canswers){
-                    if(self.canswers[temp].questionid == question){
-                        self.canswers[temp].answer = answer;
-                        return true
-                    }
-		        }
-		        self.canswers.push({'questionid':question, 'answer':answer});
-            }.bind(self));
-
-
-        }
-
-        questions.prototype.checkAnswer = function(questionid){
-            for(var temp in this.canswers){
-                if(this.canswers[temp].questionid == questionid){
-                    return this.canswers[temp].answer;
-                }
-            }
-            return 3;
-        }
-
-         questions.prototype.checkYouAnswered = function(questionid, cuser){
-            this.user2 = cuser;
-            for(var temp in this.user2.questions){
-                if(this.user2.questions[temp].questionid == questionid){
-                    return true;
-                }
-            }
-            return false;
-         }
-
-         questions.prototype.updateUser2 = function(question, answer, cuser_id){
-           //console.log('update cuser 2===>', cuser_id)
-           var self = this;
-            var req = {
-                method: 'POST',
-                url: '/api/updateAnswer',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                data: {
-                        question : question,
-		                answer : answer,
-		                cuserid : cuser_id,
-		                seed:Math.random()
-                }
-            }
-
-            $http(req).success(function (data) {
-               //console.log('updated answer', data);
-		       for(var temp in self.user2.questions){
-                    if(self.user2.questions[temp].questionid == question){
-                        self.user2.questions[temp].answer = answer;
-                        return true
-                    }
-		        }
-		       self.user2.questions.push({'questionid':question, 'answer':answer});
-		    }.bind(this));
-         }
-         return questions;
-    })
-
-	.factory('InstanceSearch', function($http, Restangular, $alert, $timeout) {
-
-		var InstanceSearch = function() {
-
-			this.InstancesearchResult = [];
-			this.busy = false;
-			this.end = false;
-			this.page = 1;
-			this.query = null;
-		};
-
-		InstanceSearch.prototype.getInstancePeoples = function(query){
-
-            var self = this;
-            this.query = query;
-            if((query)) {
-                var req = {
-                    method: 'POST',
-                    url: '/api/getpeoplenames',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    data: {
-                        page: this.page,
-                        query: query.toLowerCase()
-                    }
-                }
-
-                $http(req).success(function (peoples) {
-                    self.InstancesearchResult = peoples;
-                    //console.log(self.InstancesearchResult)
-                }.bind(self));
-            }else{
-                self.InstancesearchResult = [];
-            }
-
-        };
-
-        InstanceSearch.prototype.nextPage = function() {
-            //console.log('next page')
-            //console.log(this.busy, this.end)
-            if (this.busy | this.end) return;
-			this.busy = true;
-			var self = this;
-            var req = {
-                 method: 'POST',
-                 url: '/api/getpeoplenames',
-                 headers: {
-                   'Content-Type': 'application/json'
-                 },
-                 data: {
-                    page: self.page,
-                    query: self.query
-                 },
-            }
-
-            $http(req).success(function(peoples){
-
-                if (peoples.length === 0) {
-					self.end = true;
-				}
-				self.InstancesearchResult.push.apply(self.InstancesearchResult, peoples);
-				self.page = self.page + 1;
-				self.busy = false;
-				//console.log(self.InstancesearchResult)
-            }.bind(self));
-
-		};
-       return InstanceSearch;
-    })
-
-	.service('UserService', function($http, Restangular) {
-		this.users = [];
-
-		this.get = function(userId) {
-            for (var i in this.users) {
-				if (this.users[i]._id == userId) {
-				    return this.users[i];
-				}
-			}
-			var promise = Restangular.one('people',userId).get().$object;
-			promise._id = userId;
-			this.users.push(promise);
-			return promise;
-		};
-
-		this.getListUsers = function(userIdList){
-		    this.usersList = [];
-		    for(var k in userIdList){
-		        this.usersList.push(this.get(userIdList[k]))
-		    }
-		    return this.usersList;
-		}
-	})
-		.service('InterestsService', function($http, Restangular) {
-		this.interests = [];
-
-		this.get = function(interestid) {
-		    if(interestid){
-                for (var i in this.interests) {
-                    if (this.interests[i]._id == interestid) {
-                        return this.interests[i];
-                    }
-                }
-                var promise = Restangular.one('interests',interestid).get().$object;
-                promise._id = interestid;
-                this.interests.push(promise);
-                return promise;
-            }
-		};
-	})
-
-    .service('InstanceSearchHistory', function($http, Restangular) {
-        this.history = [];
-        this.get = function(query) {
-            for (var i in this.history) {
-                if (this.history[i].query == query) {
-                    return this.history[i].result;
-                }
-            }
-            return $http.get('/api/getpeoplenames/'+query);
-        };
-
-        this.pushToHistory = function(historyObject, query){
-            this.history.push({
-                'query':query,
-                'result':historyObject
-            })
-        }
-    })
-
-	.service('MatchButtonService', function($http, Restangular, CurrentUser1) {
-
-		this.checkMatchUnMatch = function(post, user) {
-             //console.log('weber service post', post.interestedPeople)
-             for(var i in post.interestedPeople){
-		        if(post.interestedPeople[i].interested_person == user._id){
-		            return true;
-		        }
-		     }
-		     return false;
-		};
-
-		this.match = function(authorid, postid, cuserid){
-		    return Restangular.one('match').get({
-		        cuserid : cuserid,
-		        authorid : authorid,
-		        postid: postid,
-		        seed:Math.random()
-		    });
-		};
-
-		this.unmatch = function(authorid, postid, cuserid){
-                return Restangular.one('unmatch').get({
-		        cuserid : cuserid,
-		        authorid : authorid,
-		        postid: postid,
-		        seed:Math.random()
-		    });
-		};
-
-	})
-    	.factory('InfinitePosts', function($http, Restangular, $alert, $timeout) {
-
-		var InfinitePosts = function(user_obj,authorIds) {
-			this.posts = [];
-			this.SpecificPost = {},
-			this.user_obj = user_obj;
-			this.busy = true;
-			this.page = 1;
-			this.loadPostIds = authorIds;
-			this.end = false;
-            this.params = '{"author": {"$in":'+this.loadPostIds+'}}';
-            //console.log('author params===>', this.params)
-        }
-
-        InfinitePosts.prototype.getEarlyPosts = function(){
-                Restangular.all('posts').getList({
-                    where : this.params,
-                    max_results: 10,
-                    page: this.page,
-                    sort: '[("_created",-1)]',
-                    seed:Math.random()
-                }).then(function(posts) {
-                    //console.log('loadposts')
-                    if (posts.length < 10) {
-                        this.end = true;
-                    }
-                    this.posts.push.apply(this.posts, posts);
-                    this.page = this.page + 1;
-                    this.busy = false;
-
-                }.bind(this));
-		};
-
-        InfinitePosts.prototype.getSpecificPost = function(postid){
-            var embedded = '{"author":1}';
-            Restangular.one('posts', postid.postid).get({embedded:embedded, seed:Math.random()})
-            .then(function(data){
-                this.posts.push({
-                    '_id':data._id,
-                    'author':data.author,
-                    'content':data.content,
-                    '_created': data._created,
-                    '_etag': data._etag,
-                    'interestedPeople': data.interestedPeople,
-                });
-                //console.log('posts--------->', this.posts);
-               // console.log('ddata--------->', data);
-            }.bind(this));
-
-        }
-
-		InfinitePosts.prototype.nextPage = function() {
-		    //console.log('nextpage')
-			if (this.busy | this.end) return;
-			this.busy = true;
-
-			Restangular.all('posts').getList({
-			    where : this.params,
-				max_results: 10,
-				page: this.page,
-				sort: '[("_created",-1)]',
-				seed:Math.random()
-			}).then(function(posts) {
-				if (posts.length === 0) {
-					this.end = true;
-				}
-				this.posts.push.apply(this.posts, posts);
-				this.page = this.page + 1;
-				this.busy = false;
-			}.bind(this));
-		};
-
-		InfinitePosts.prototype.loadNotificPost = function(postid, author){
-            //console.log(postid, author)
-            if(this.user_obj._id !== author){
-                Restangular.one('posts', postid).get().then(function(post) {
-                    //console.log(post)
-                    this.posts.unshift({
-                        author: post.author,
-                        content: post.content,
-                        _created: post._created,
-                        _id: post._id,
-                        _etag: post._etag,
-                         interestedPeople : post.interestedPeople
-                    });
-                    //console.log(this.posts)
-                }.bind(this));
-            }
-		}
-
-		InfinitePosts.prototype.addPost = function(content, similar_keywords, imagePath) {
-
-			this.user_obj.all('posts').post({
-				author: this.user_obj._id,
-				content: content,
-				keywords: similar_keywords,
-				post_image_path : imagePath,
-				interestedPeople: []
-			}).then(function(data) {
-
-                this.posts.unshift({
-                    author: this.user_obj._id,
-                    content: content,
-                    post_image_path : imagePath,
-                    _created: new Date(),
-                    _id:data._id,
-                    _etag: data._etag,
-                    interestedPeople : []
-
-				});
-
-				var myAlert = $alert({
-					title: 'Successfully Posted! :)',
-					placement: 'top',
-					type: 'success',
-					show: true
-				});
-				$timeout(function() {
-					myAlert.hide();
-				}, 5000);
-
-			}.bind(this));
-		};
-
-		InfinitePosts.prototype.deletePost = function(post, user) {
-            //console.log('delete post details', post.author)
-			Restangular.one('posts', post._id).remove({},{
-			    'If-Match': (post._etag).toString()
-			}).then(function(data) {
-			    for(var k in this.posts){
-			        if(this.posts[k]._id == post._id){
-			            this.posts.splice(k,1);
-			            this.SpecificPost = {};
-			            //console.log("successfully deleted")
-			        }
-			    }
-			}.bind(this));
-
-			for(var i in post.author.matchnotifications){
-			    if(post.author.matchnotifications[i].postid == post._id){
-    		       post.author.matchnotifications.splice(i,1);
-
-    		       user.patch({'matchnotifications':post.author.matchnotifications})
-    		       .then(function(data){
-    		           /// console.log('delete notification==>', data)
-    		       })
-			    }
-			}
-		};
-		return InfinitePosts;
-	})
-	.service('PostService', function($http, Restangular) {
-		this.posts = [];
-        var param1 = '{"author":1}';
-
-		this.get = function(postid) {
-		    //console.log('postid==>', postid)
-
-			for (var i in this.posts) {
-				if (this.posts[i]._id == postid) {
-					return this.posts[i];
-				}
-			}
-
-			var promise = Restangular.one('posts', postid).get({embedded: param1, seed: Math.random() }).$object;
-			promise._id = postid;
-			this.posts.push(promise);
-			return promise;
-		};
-
-	    this.resetPost = function(postid){
-	        var promise = Restangular.one('posts', postid).get({embedded: param1, seed: Math.random() }).$object;
-			promise._id = postid;
-			this.posts.push(promise);
-			return promise;
-	    }
-
-
-	})
-
-	.service('sortIListService', function($http, Restangular,CurrentUser1) {
-		this.sendList = function(list, cuserid){
-		    if(list && list.length){
-		        for(var temp in list){
-    		       if(list[temp] == cuserid){
-                        list.push(list.splice( temp, 1 )[0]);
-	               }
-		        }
-    		    return list.reverse();
-		    }else
-		        return list;
-		}
-
-	}).service('CurrentUser1', function($http, Restangular) {
-		this.userId = null;
-		this.user = null;
-		this.reset = function() {
-			this.userId = null;
-		};
-
-		if (this.userId === null) {
-			$http.get('/api/me', {
-				headers: {
-					'Content-Type': 'application/json'
-				}
-			}).success(function(userId) {
-				this.userId = userId;
-				Restangular.one('people', JSON.parse(userId)).get().then(function(user) {
-					this.user = user;
-				}.bind(this));
-			}.bind(this));
-		}
-
-	})
-	.factory('CurrentUser', function($http,$auth,$q, Restangular) {
-            var CurrentUser = function() {
-			    this.userId = null;
-			    this.user = null;
-            }
-
-            CurrentUser.prototype.getUserId = function(){
-
-                    return $http.get('/api/me', {
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': $auth.getToken()
-                        }
-                    }).success(function(userId) {
-                        this.userId = userId;
-                    }.bind(this));
-            };
-
-			CurrentUser.prototype.getCUserDetails = function(userid){
-
-                return Restangular.one('people',JSON.parse(userid)).get({seed:Math.random()});
-            };
-
-            return CurrentUser;
-    })
-
-
-
-    .service('ESClient', function(esFactory) {
-		return esFactory({
-			host: 'http://127.0.0.1:8000',
-			apiVersion: '1.2',
-			log: 'trace'
-		});
-	})
-    .factory('SearchActivity', function($http, Restangular, $alert, $timeout) {
-
-		var SearchActivity = function(user_obj) {
-			this.searchHistory = [];
-			this.user_obj = user_obj;
-			this.busy = false;
-			this.end = false;
-			this.page = 1;
-		};
-
-		SearchActivity.prototype.deleteItem = function(id){
-		    var self = this;
-		    for(var temp in self.searchHistory){
-		        if(self.searchHistory[temp]._id == id){
-		            self.searchHistory.splice(temp, 1);
-		            var req = {
-                        method: 'POST',
-                        url: '/api/deleteSearchHistoryItem',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        data: {'_id': id}
-                    }
-                    $http(req).then(function(data){
-                        //console.log(data);
-                    })
-
-		        }
-		    }
-		}
-
-		SearchActivity.prototype.getMysearches = function(){
-                Restangular.one('people', this.user_obj._id).all('searchActivity').getList({
-                    max_results: 10,
-                    page: this.page,
-                    sort: '[("_created",-1)]',
-                    seed: Math.random()
-                }).then(function(data) {
-                    //console.log('my search')
-                    //console.log(data)
-                    if (data.length < 10) {
-					    this.end = true;
-				    }
-
-				    this.searchHistory.push.apply(this.searchHistory,data);
-				    this.page = this.page + 1;
-				    this.busy = false;
-                }.bind(this));
-
-		}
-
-       SearchActivity.prototype.nextPage = function() {
-			if (this.busy | this.end) return;
-			this.busy = true;
-            this.user_obj.all('searchActivity').getList({
-                    max_results: 2,
-                    page: this.page,
-                    sort: '[("_created",-1)]',
-                    seed: Math.random()
-            }).then(function(data) {
-                    if(data.length === 0){
-                        this.end = true;
-                    }
-                    this.searchHistory.push.apply(this.searchHistory,data);
-                    //console.log(this.searchResult)
-                    this.page = this.page + 1;
-				    this.busy = false;
-            }.bind(this));
-		};
-
-       SearchActivity.prototype.addSearchText = function(content) {
-		    var self = this;
-            var req = {
-                method: 'POST',
-                url: '/api/storeSearchResults',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                data: {'content': content, 'author': self.user_obj._id}
-            }
-            $http(req).success(function(data){
-                if(data.data){
-                    self.searchHistory.unshift({
-                        author: self.user_obj._id,
-                        content: content,
-                        _id: data._id
-                    });
-                }
-            }.bind(self));
-       };
-
-       SearchActivity.prototype.getSimilarWords = function(sentence){
-            return $http({
-                       url: '/api/similarwords',
-                       method: "GET",
-                       params: {querystring: sentence }
-            });
-       }
-
-		function combine_ids(ids) {
-   			return (ids.length ? "\"" + ids.join("\",\"") + "\"" : "");
-		}
-
-    return SearchActivity;
-
-	})
-	.factory('MatchMeResults', function($http, Restangular, $alert, $timeout,CurrentUser,$auth,CurrentUser1) {
-
-        function combine_ids(ids) {
-   				return (ids.length ? "\"" + ids.join("\",\"") + "\"" : "");
-		}
-
-        // remove duplicate results
-        function removeDuplicateResults(inputarry){
-            var temparray = [];
-            var authorIds = [];
-
-            for(var i in inputarry){
-                //console.log(i)
-                if(authorIds.indexOf(inputarry[i].author._id) === -1){
-                    authorIds.push(inputarry[i].author._id);
-                    temparray.push(inputarry[i]);
-                }
-            }
-
-            return temparray;
-        }
-
-		var  MatchMeResults = function(query, location) {
-
-			this.total_matches = 0;
-
-			this.mResultsNotFound = false;
-			this.saResultsNotFound = false;
-
-			this.mresults = [];
-			this.matchedids = [];
-			this.totalNames = '';
-			this.searchNames =[];
-			this.busy = true;
-			this.page = 1;
-			this.end = false;
-            var keywords;
-            this.param1 = null;
-            this.param2 = null;
-            this.query = query
-            this.sPage = 1;
-            this.sEnd = false;
-            this.sBusy = true;
-            this.suggestpeople = false;
-            if(typeof location === 'undefined')
-                this.location = 0;
-            else
-                this.location = location;
-        };
-
-        MatchMeResults.prototype.newSearchResults = function(){
-
-            if(this.query){
-
-                var keywords = combine_ids(this.query.split(" "));
-                var self = this;
-                var req = {
-                    method: 'POST',
-                    url: '/api/matchresults',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    data: {
-                        page: self.page,
-                        query: self.query,
-                        keywords : keywords,
-                        location : self.location
-                    },
-                }
-
-            $http(req).success(function(data){
-               self.mresults.push.apply(self.mresults, data.final_result);
-            }.bind(self));
-
-            }
- 		};
-
-
-
-		MatchMeResults.prototype.getMatchedNewResults = function(searchPostId) {
-
-			var params = '{"_id":"'+searchPostId+'"}';
-
-			var data = Restangular.one("people",JSON.parse(CurrentUser1.userId)).all('searchActivity').getList({
-				where :params,
-				sort: '[("_created",-1)]',
-				seed : Math.random()
-			}).then(function(sResult) {
-
-				var param = '{"_id":{"$in":['+combine_ids(sResult[0].matchedPosts)+']}}';
-				var param2 = '{"author":1}';
-
-				var data2 = Restangular.all("posts").getList({
-					where: param,
-					embedded: param2,
-					seed : Math.random()
-				}).then(function(data){
-					this.total_matches = data.length;
-					this.mresults.push.apply(this.mresults,data);
-				}.bind(this));
-
-				Restangular.one("searchActivity",searchPostId).patch(
-					{newResults:0},{},
-					{
-						'Content-Type': 'application/json',
-						'If-Match': sResult[0]._etag,
-						'Authorization': $auth.getToken()
-					}
-				);
-
-				return data2
-            }.bind(this));
-            return data;
-		};
-
-        MatchMeResults.prototype.nextPage = function() {
-
-            if ((this.busy | this.end) && this.query) return;
-			this.busy = true;
-            var self = this;
-
-			Restangular.all('posts').getList({
-			    where : self.param1,
-				max_results: 30,
-				page: self.page,
-				embedded : self.param2
-			}).then(function(data) {
-
-                if (data.length === 0) {
-					self.end = true;
-				}
-				//console.log('called infinity scroll')
-				self.mresults.push.apply(self.mresults, data);
-                self.mresults = removeDuplicateResults(self.mresults);
-				self.page = self.page + 1;
-				self.busy = false;
-
-			}.bind(self));
-
-
-		};
-
-
-		MatchMeResults.prototype.nextPageSearchResults = function() {
-            //console.log("nextpage search resutls")
-			if ((this.sBusy | this.sEnd) && this.query) return;
-			this.sBusy = true;
-            var self = this;
-
-			Restangular.all('searchActivity').getList({
-			    where : self.param1,
-				max_results: 30,
-				page: self.sPage,
-				embedded : self.param2
-			}).then(function(data) {
-
-                if (data.length === 0) {
-					self.sEnd = true;
-				}
-
-				self.mresults.push.apply(self.mresults, data);
-                self.mresults = removeDuplicateResults(self.mresults);
-
-				self.sPage = self.sPage + 1;
-				self.sBusy = false;
-
-			}.bind(self));
-		};
-
-		/*MatchMeResults.prototype.getMatchPeoples = function(searchText) {
-
-			var params = '{"$or":[{"name.first":{"$regex":".*'+searchText+'.*"}},{"name.last":{"$regex":".*'+searchText+'.*"}},'+
-			             '{"username":{"$regex":".*'+searchText+'.*"}}]}';
-			Restangular.all('people').getList({
-				where :params
-				}).then(function(data) {
-					this.totalNames = data.length;
-					this.searchNames.push.apply(this.searchNames,data);
-				}.bind(this));
-
-		};
-
-		MatchMeResults.prototype.getSuggestedPeople = function(){
-
-            function combine_ids(ids) {
-   			    return (ids.length ? "\"" + ids.join("\",\"") + "\"" : "");
-		    }
-
-            var param = '{"interestsimilarwords":{"$in":['+combine_ids(this.query.split(" "))+']}}';
-            Restangular.all("people").getList({
-					where: param,
-					seed : Math.random()
-			}).then(function(data){
-                   if(data.length >= 1){
-                     this.suggestpeople = true;
-			       }
-					var tempresutls = [];
-					this.mresults.push.apply(this.mresults,data);
-					for(var temp in this.mresults){
-					    var author = {
-					        author:{
-                                name:{
-                                    first:this.mresults[temp].name.first,
-                                    last: this.mresults[temp].name.last,
-                                },
-                                _id:this.mresults[temp]._id,
-                                picture:{
-                                    medium:this.mresults[temp].picture.medium
-                                }
+            $scope.pushToPost = function(postauthor, postid){
+                //console.log('match user id', user._id)
+                var posts = $scope.infinitePosts.posts;
+                for(var temp in posts){
+                    if(posts[temp]._id == postid){
+                        postauthor = posts[temp].author;
+                        postid = posts[temp]._id;
+
+                        var iPeople = posts[temp].interestedPeople;
+                        for(var i in iPeople){
+                            if(iPeople[i].interested_person == $rootScope.currentUser._id){
+                                return true;
                             }
-					    }
-					    tempresutls.push(author);
-					}
+                        }
+                        iPeople.push({'interested_person': $rootScope.currentUser._id, 'match_date': new Date()});
+                        //console.log('post author-->', postauthor)
+                        MatchButtonService.match(postauthor, postid , $rootScope.currentUser._id).then(function(data){
+                            //console.log('match agree succesfully-->', data);
+                        });
 
-					this.mresults = tempresutls;
-			}.bind(this));
-		}*/
-		return MatchMeResults;
-	});angular.module('weberApp')
+                    }
+                }
+            }
+
+            $scope.deleteFromPost = function(postauthor, postid){
+
+                //console.log('unmatch user id', user._id)
+                var posts = $scope.infinitePosts.posts;
+
+                for(var temp in posts){
+                    // if post contains with post id
+                    if(posts[temp]._id == postid){
+                        var iPeople = posts[temp].interestedPeople;
+                        for(var i in iPeople){
+                            if(iPeople[i].interested_person == $rootScope.currentUser._id){
+                               iPeople.splice(i,1);
+                               MatchButtonService.unmatch(postauthor, postid, $rootScope.currentUser._id).then(function(data){
+                                    //console.log('unmatch disagree succesfully-->', data);
+                               });
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
+    });
+});angular.module('weberApp')
 .factory('friendsActivity', function($http, Restangular, $alert, $timeout,CurrentUser) {
 
         var friendsActivity = function(currentuser, profileuser){
@@ -3213,18 +2351,18 @@ angular.module('weberApp')
 
          this.unFreind = function(cuserid, puserid){
              var self = this;
-                var req = {
-                    method: 'POST',
-                    url: '/api/unfriend',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    data: {
-                            cuserid : cuserid,
-		                    puserid : puserid,
-		                    seed:Math.random()
-                    }
+             var req = {
+                method: 'POST',
+                url: '/api/unfriend',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                        cuserid : cuserid,
+                        puserid : puserid,
+                        seed:Math.random()
                 }
+             }
                 return $http(req);
          }
 
@@ -3696,7 +2834,900 @@ angular.module('weberApp')
 				headers: {'Content-Type': undefined}
 			});
 		}
-	}]);/*====== end of file upload services ======*/angular.module('weberApp')
+	}]);/*====== end of file upload services ======*/'use strict';
+/**
+ * @ngdoc service
+ * @name weberApp.weberService
+ * @description
+ * # weberService
+ * Service in the weberApp.
+ */
+angular.module('weberApp')
+
+
+        .factory('socket', function (socketFactory) {
+          var myIoSocket = io.connect('http://localhost:8080/');
+
+          var socket = socketFactory({
+            ioSocket: myIoSocket
+          });
+          return socket;
+        })
+
+       .factory('questions', function($http, Restangular,$auth) {
+
+        var questions = function(currentuser){
+            this.currentuser = currentuser;
+            this.allquestions = [];
+            this.cuserquestions = [];
+            this.user2 = {},
+            this.canswers = this.currentuser.questions;
+            //console.log(this.currentuser.username)
+        }
+
+        questions.prototype.getallquestions = function(){
+          Restangular.all('questions').getList().then(function(data){
+            this.allquestions.push.apply(this.allquestions, data);
+
+          }.bind(this));
+        }
+
+        function combine_ids(ids) {
+   			return (ids.length ? "\"" + ids.join("\",\"") + "\"" : "");
+		}
+
+        questions.prototype.getUserQuestions = function(){
+            var cuserquestionids = []
+
+            for(var temp in this.currentuser.questions){
+                cuserquestionids.push((this.currentuser.questions[temp].questionid).toString())
+            }
+            //console.log('cuser question ids', cuserquestionids)
+
+            var params = '{"_id": {"$in":['+combine_ids(cuserquestionids)+']}}';
+
+            //console.log(params)
+            Restangular.all('questions').getList({where:params, seed: Math.random()}).then(function(data){
+            this.cuserquestions.push.apply(this.cuserquestions, data);
+          }.bind(this));
+
+        }
+
+        questions.prototype.updateAnswer = function(question, answer, cuser_id){
+            //console.log('----------------service------------')
+            var self = this;
+            var req = {
+                method: 'POST',
+                url: '/api/updateAnswer',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                        question : question,
+		                answer : answer,
+		                cuserid : cuser_id,
+		                seed:Math.random()
+                }
+            }
+
+            $http(req).success(function (data) {
+                for(var temp in self.canswers){
+                    if(self.canswers[temp].questionid == question){
+                        self.canswers[temp].answer = answer;
+                        return true
+                    }
+		        }
+		        self.canswers.push({'questionid':question, 'answer':answer});
+            }.bind(self));
+
+
+        }
+
+        questions.prototype.checkAnswer = function(questionid){
+            for(var temp in this.canswers){
+                if(this.canswers[temp].questionid == questionid){
+                    return this.canswers[temp].answer;
+                }
+            }
+            return 3;
+        }
+
+         questions.prototype.checkYouAnswered = function(questionid, cuser){
+            this.user2 = cuser;
+            for(var temp in this.user2.questions){
+                if(this.user2.questions[temp].questionid == questionid){
+                    return true;
+                }
+            }
+            return false;
+         }
+
+         questions.prototype.updateUser2 = function(question, answer, cuser_id){
+           //console.log('update cuser 2===>', cuser_id)
+           var self = this;
+            var req = {
+                method: 'POST',
+                url: '/api/updateAnswer',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                        question : question,
+		                answer : answer,
+		                cuserid : cuser_id,
+		                seed:Math.random()
+                }
+            }
+
+            $http(req).success(function (data) {
+               //console.log('updated answer', data);
+		       for(var temp in self.user2.questions){
+                    if(self.user2.questions[temp].questionid == question){
+                        self.user2.questions[temp].answer = answer;
+                        return true
+                    }
+		        }
+		       self.user2.questions.push({'questionid':question, 'answer':answer});
+		    }.bind(this));
+         }
+         return questions;
+    })
+
+	.factory('InstanceSearch', function($http, Restangular, $alert, $timeout) {
+
+		var InstanceSearch = function() {
+
+			this.InstancesearchResult = [];
+			this.busy = false;
+			this.end = false;
+			this.page = 1;
+			this.query = null;
+		};
+
+		InstanceSearch.prototype.getInstancePeoples = function(query){
+
+            var self = this;
+            this.query = query;
+            if((query)) {
+                var req = {
+                    method: 'POST',
+                    url: '/api/getpeoplenames',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    data: {
+                        page: this.page,
+                        query: query.toLowerCase()
+                    }
+                }
+
+                $http(req).success(function (peoples) {
+                    self.InstancesearchResult = peoples;
+                    //console.log(self.InstancesearchResult)
+                }.bind(self));
+            }else{
+                self.InstancesearchResult = [];
+            }
+
+        };
+
+        InstanceSearch.prototype.nextPage = function() {
+            //console.log('next page')
+            //console.log(this.busy, this.end)
+            if (this.busy | this.end) return;
+			this.busy = true;
+			var self = this;
+            var req = {
+                 method: 'POST',
+                 url: '/api/getpeoplenames',
+                 headers: {
+                   'Content-Type': 'application/json'
+                 },
+                 data: {
+                    page: self.page,
+                    query: self.query
+                 },
+            }
+
+            $http(req).success(function(peoples){
+
+                if (peoples.length === 0) {
+					self.end = true;
+				}
+				self.InstancesearchResult.push.apply(self.InstancesearchResult, peoples);
+				self.page = self.page + 1;
+				self.busy = false;
+				//console.log(self.InstancesearchResult)
+            }.bind(self));
+
+		};
+       return InstanceSearch;
+    })
+
+	.service('UserService', function($http, Restangular) {
+		this.users = [];
+
+		this.get = function(userId) {
+            for (var i in this.users) {
+				if (this.users[i]._id == userId) {
+				    return this.users[i];
+				}
+			}
+			var promise = Restangular.one('people',userId).get().$object;
+			promise._id = userId;
+			this.users.push(promise);
+			return promise;
+		};
+
+		this.getListUsers = function(userIdList){
+		    this.usersList = [];
+		    for(var k in userIdList){
+		        this.usersList.push(this.get(userIdList[k]))
+		    }
+		    return this.usersList;
+		}
+	})
+		.service('InterestsService', function($http, Restangular) {
+		this.interests = [];
+
+		this.get = function(interestid) {
+		    if(interestid){
+                for (var i in this.interests) {
+                    if (this.interests[i]._id == interestid) {
+                        return this.interests[i];
+                    }
+                }
+                var promise = Restangular.one('interests',interestid).get().$object;
+                promise._id = interestid;
+                this.interests.push(promise);
+                return promise;
+            }
+		};
+	})
+
+    .service('InstanceSearchHistory', function($http, Restangular) {
+        this.history = [];
+        this.get = function(query) {
+            for (var i in this.history) {
+                if (this.history[i].query == query) {
+                    return this.history[i].result;
+                }
+            }
+            return $http.get('/api/getpeoplenames/'+query);
+        };
+
+        this.pushToHistory = function(historyObject, query){
+            this.history.push({
+                'query':query,
+                'result':historyObject
+            })
+        }
+    })
+
+	.service('MatchButtonService', function($http, Restangular, CurrentUser1) {
+
+		this.checkMatchUnMatch = function(post, user) {
+             //console.log('weber service post', post.interestedPeople)
+             for(var i in post.interestedPeople){
+		        if(post.interestedPeople[i].interested_person == user._id){
+		            return true;
+		        }
+		     }
+		     return false;
+		};
+
+		this.match = function(authorid, postid, cuserid){
+
+		    return Restangular.one('match').get({
+		        cuserid : cuserid,
+		        authorid : authorid,
+		        postid: postid,
+		        seed:Math.random()
+		    });
+
+
+             var req = {
+                method: 'POST',
+                url: '/api/match',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                data: {
+                        cuserid : cuserid,
+                        authorid : authorid,
+                        postid: postid,
+                        seed:Math.random()
+                }
+             }
+                return $http(req);
+		};
+
+		this.unmatch = function(authorid, postid, cuserid){
+                return Restangular.one('unmatch').get({
+		        cuserid : cuserid,
+		        authorid : authorid,
+		        postid: postid,
+		        seed:Math.random()
+		    });
+		};
+
+	})
+    	.factory('InfinitePosts', function($http, Restangular, $alert, $timeout) {
+
+		var InfinitePosts = function(user_obj,authorIds) {
+			this.posts = [];
+			this.SpecificPost = {},
+			this.user_obj = user_obj;
+			this.busy = true;
+			this.page = 1;
+			this.loadPostIds = authorIds;
+			this.end = false;
+            this.params = '{"author": {"$in":'+this.loadPostIds+'}}';
+            //console.log('author params===>', this.params)
+        }
+
+        InfinitePosts.prototype.getEarlyPosts = function(){
+                Restangular.all('posts').getList({
+                    where : this.params,
+                    max_results: 10,
+                    page: this.page,
+                    sort: '[("_created",-1)]',
+                    seed:Math.random()
+                }).then(function(posts) {
+                    //console.log('loadposts')
+                    if (posts.length < 10) {
+                        this.end = true;
+                    }
+                    this.posts.push.apply(this.posts, posts);
+                    this.page = this.page + 1;
+                    this.busy = false;
+
+                }.bind(this));
+		};
+
+        InfinitePosts.prototype.getSpecificPost = function(postid){
+            var embedded = '{"author":1}';
+            Restangular.one('posts', postid.postid).get({embedded:embedded, seed:Math.random()})
+            .then(function(data){
+                this.posts.push({
+                    '_id':data._id,
+                    'author':data.author,
+                    'content':data.content,
+                    '_created': data._created,
+                    '_etag': data._etag,
+                    'interestedPeople': data.interestedPeople,
+                });
+                //console.log('posts--------->', this.posts);
+               // console.log('ddata--------->', data);
+            }.bind(this));
+
+        }
+
+		InfinitePosts.prototype.nextPage = function() {
+		    //console.log('nextpage')
+			if (this.busy | this.end) return;
+			this.busy = true;
+
+			Restangular.all('posts').getList({
+			    where : this.params,
+				max_results: 10,
+				page: this.page,
+				sort: '[("_created",-1)]',
+				seed:Math.random()
+			}).then(function(posts) {
+				if (posts.length === 0) {
+					this.end = true;
+				}
+				this.posts.push.apply(this.posts, posts);
+				this.page = this.page + 1;
+				this.busy = false;
+			}.bind(this));
+		};
+
+		InfinitePosts.prototype.loadNotificPost = function(postid, author){
+            //console.log(postid, author)
+            if(this.user_obj._id !== author){
+                Restangular.one('posts', postid).get().then(function(post) {
+                    //console.log(post)
+                    this.posts.unshift({
+                        author: post.author,
+                        content: post.content,
+                        _created: post._created,
+                        _id: post._id,
+                        _etag: post._etag,
+                         interestedPeople : post.interestedPeople
+                    });
+                    //console.log(this.posts)
+                }.bind(this));
+            }
+		}
+
+		InfinitePosts.prototype.addPost = function(content, similar_keywords, imagePath) {
+
+			this.user_obj.all('posts').post({
+				author: this.user_obj._id,
+				content: content,
+				keywords: similar_keywords,
+				post_image_path : imagePath,
+				interestedPeople: []
+			}).then(function(data) {
+
+                this.posts.unshift({
+                    author: this.user_obj._id,
+                    content: content,
+                    post_image_path : imagePath,
+                    _created: new Date(),
+                    _id:data._id,
+                    _etag: data._etag,
+                    interestedPeople : []
+
+				});
+
+				var myAlert = $alert({
+					title: 'Successfully Posted! :)',
+					placement: 'top',
+					type: 'success',
+					show: true
+				});
+				$timeout(function() {
+					myAlert.hide();
+				}, 5000);
+
+			}.bind(this));
+		};
+
+		InfinitePosts.prototype.deletePost = function(post, user) {
+            //console.log('delete post details', post.author)
+			Restangular.one('posts', post._id).remove({},{
+			    'If-Match': (post._etag).toString()
+			}).then(function(data) {
+			    for(var k in this.posts){
+			        if(this.posts[k]._id == post._id){
+			            this.posts.splice(k,1);
+			            this.SpecificPost = {};
+			            //console.log("successfully deleted")
+			        }
+			    }
+			}.bind(this));
+
+			for(var i in post.author.matchnotifications){
+			    if(post.author.matchnotifications[i].postid == post._id){
+    		       post.author.matchnotifications.splice(i,1);
+
+    		       user.patch({'matchnotifications':post.author.matchnotifications})
+    		       .then(function(data){
+    		           /// console.log('delete notification==>', data)
+    		       })
+			    }
+			}
+		};
+		return InfinitePosts;
+	})
+	.service('PostService', function($http, Restangular) {
+		this.posts = [];
+        var param1 = '{"author":1}';
+
+		this.get = function(postid) {
+		    //console.log('postid==>', postid)
+
+			for (var i in this.posts) {
+				if (this.posts[i]._id == postid) {
+					return this.posts[i];
+				}
+			}
+
+			var promise = Restangular.one('posts', postid).get({embedded: param1, seed: Math.random() }).$object;
+			promise._id = postid;
+			this.posts.push(promise);
+			return promise;
+		};
+
+	    this.resetPost = function(postid){
+	        var promise = Restangular.one('posts', postid).get({embedded: param1, seed: Math.random() }).$object;
+			promise._id = postid;
+			this.posts.push(promise);
+			return promise;
+	    }
+
+
+	})
+
+	.service('sortIListService', function($http, Restangular,CurrentUser1) {
+		this.sendList = function(list, cuserid){
+		    if(list && list.length){
+		        for(var temp in list){
+    		       if(list[temp] == cuserid){
+                        list.push(list.splice( temp, 1 )[0]);
+	               }
+		        }
+    		    return list.reverse();
+		    }else
+		        return list;
+		}
+
+	}).service('CurrentUser1', function($http, Restangular) {
+		this.userId = null;
+		this.user = null;
+		this.reset = function() {
+			this.userId = null;
+		};
+
+		if (this.userId === null) {
+			$http.get('/api/me', {
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			}).success(function(userId) {
+				this.userId = userId;
+				Restangular.one('people', JSON.parse(userId)).get().then(function(user) {
+					this.user = user;
+				}.bind(this));
+			}.bind(this));
+		}
+
+	})
+	.factory('CurrentUser', function($http,$auth,$q, Restangular) {
+            var CurrentUser = function() {
+			    this.userId = null;
+			    this.user = null;
+            }
+
+            CurrentUser.prototype.getUserId = function(){
+
+                    return $http.get('/api/me', {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': $auth.getToken()
+                        }
+                    }).success(function(userId) {
+                        this.userId = userId;
+                    }.bind(this));
+            };
+
+			CurrentUser.prototype.getCUserDetails = function(userid){
+
+                return Restangular.one('people',JSON.parse(userid)).get({seed:Math.random()});
+            };
+
+            return CurrentUser;
+    })
+
+
+
+    .service('ESClient', function(esFactory) {
+		return esFactory({
+			host: 'http://127.0.0.1:8000',
+			apiVersion: '1.2',
+			log: 'trace'
+		});
+	})
+    .factory('SearchActivity', function($http, Restangular, $alert, $timeout) {
+
+		var SearchActivity = function(user_obj) {
+			this.searchHistory = [];
+			this.user_obj = user_obj;
+			this.busy = false;
+			this.end = false;
+			this.page = 1;
+		};
+
+		SearchActivity.prototype.deleteItem = function(id){
+		    var self = this;
+		    for(var temp in self.searchHistory){
+		        if(self.searchHistory[temp]._id == id){
+		            self.searchHistory.splice(temp, 1);
+		            var req = {
+                        method: 'POST',
+                        url: '/api/deleteSearchHistoryItem',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        data: {'_id': id}
+                    }
+                    $http(req).then(function(data){
+                        //console.log(data);
+                    })
+
+		        }
+		    }
+		}
+
+		SearchActivity.prototype.getMysearches = function(){
+                Restangular.one('people', this.user_obj._id).all('searchActivity').getList({
+                    max_results: 10,
+                    page: this.page,
+                    sort: '[("_created",-1)]',
+                    seed: Math.random()
+                }).then(function(data) {
+                    //console.log('my search')
+                    //console.log(data)
+                    if (data.length < 10) {
+					    this.end = true;
+				    }
+
+				    this.searchHistory.push.apply(this.searchHistory,data);
+				    this.page = this.page + 1;
+				    this.busy = false;
+                }.bind(this));
+
+		}
+
+       SearchActivity.prototype.nextPage = function() {
+			if (this.busy | this.end) return;
+			this.busy = true;
+            this.user_obj.all('searchActivity').getList({
+                    max_results: 2,
+                    page: this.page,
+                    sort: '[("_created",-1)]',
+                    seed: Math.random()
+            }).then(function(data) {
+                    if(data.length === 0){
+                        this.end = true;
+                    }
+                    this.searchHistory.push.apply(this.searchHistory,data);
+                    //console.log(this.searchResult)
+                    this.page = this.page + 1;
+				    this.busy = false;
+            }.bind(this));
+		};
+
+       SearchActivity.prototype.addSearchText = function(content) {
+		    var self = this;
+            var req = {
+                method: 'POST',
+                url: '/api/storeSearchResults',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                data: {'content': content, 'author': self.user_obj._id}
+            }
+            $http(req).success(function(data){
+                if(data.data){
+                    self.searchHistory.unshift({
+                        author: self.user_obj._id,
+                        content: content,
+                        _id: data._id
+                    });
+                }
+            }.bind(self));
+       };
+
+       SearchActivity.prototype.getSimilarWords = function(sentence){
+            return $http({
+                       url: '/api/similarwords',
+                       method: "GET",
+                       params: {querystring: sentence }
+            });
+       }
+
+		function combine_ids(ids) {
+   			return (ids.length ? "\"" + ids.join("\",\"") + "\"" : "");
+		}
+
+    return SearchActivity;
+
+	})
+	.factory('MatchMeResults', function($http, Restangular, $alert, $timeout,CurrentUser,$auth,CurrentUser1) {
+
+        function combine_ids(ids) {
+   				return (ids.length ? "\"" + ids.join("\",\"") + "\"" : "");
+		}
+
+        // remove duplicate results
+        function removeDuplicateResults(inputarry){
+            var temparray = [];
+            var authorIds = [];
+
+            for(var i in inputarry){
+                //console.log(i)
+                if(authorIds.indexOf(inputarry[i].author._id) === -1){
+                    authorIds.push(inputarry[i].author._id);
+                    temparray.push(inputarry[i]);
+                }
+            }
+
+            return temparray;
+        }
+
+		var  MatchMeResults = function(query, location) {
+
+			this.total_matches = 0;
+
+			this.mResultsNotFound = false;
+			this.saResultsNotFound = false;
+
+			this.mresults = [];
+			this.matchedids = [];
+			this.totalNames = '';
+			this.searchNames =[];
+			this.busy = true;
+			this.page = 1;
+			this.end = false;
+            var keywords;
+            this.param1 = null;
+            this.param2 = null;
+            this.query = query
+            this.sPage = 1;
+            this.sEnd = false;
+            this.sBusy = true;
+            this.suggestpeople = false;
+            if(typeof location === 'undefined')
+                this.location = 0;
+            else
+                this.location = location;
+        };
+
+        MatchMeResults.prototype.newSearchResults = function(){
+
+            if(this.query){
+
+                var keywords = combine_ids(this.query.split(" "));
+                var self = this;
+                var req = {
+                    method: 'POST',
+                    url: '/api/matchresults',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    data: {
+                        page: self.page,
+                        query: self.query,
+                        keywords : keywords,
+                        location : self.location
+                    },
+                }
+
+            $http(req).success(function(data){
+                console.log("data final", data);
+                self.mresults.push.apply(self.mresults, data.final_result);
+                console.log("mresults", self.mresults);
+            }.bind(self));
+
+            }
+ 		};
+
+
+
+		MatchMeResults.prototype.getMatchedNewResults = function(searchPostId) {
+
+			var params = '{"_id":"'+searchPostId+'"}';
+
+			var data = Restangular.one("people",JSON.parse(CurrentUser1.userId)).all('searchActivity').getList({
+				where :params,
+				sort: '[("_created",-1)]',
+				seed : Math.random()
+			}).then(function(sResult) {
+
+				var param = '{"_id":{"$in":['+combine_ids(sResult[0].matchedPosts)+']}}';
+				var param2 = '{"author":1}';
+
+				var data2 = Restangular.all("posts").getList({
+					where: param,
+					embedded: param2,
+					seed : Math.random()
+				}).then(function(data){
+					this.total_matches = data.length;
+					this.mresults.push.apply(this.mresults,data);
+				}.bind(this));
+
+				Restangular.one("searchActivity",searchPostId).patch(
+					{newResults:0},{},
+					{
+						'Content-Type': 'application/json',
+						'If-Match': sResult[0]._etag,
+						'Authorization': $auth.getToken()
+					}
+				);
+
+				return data2
+            }.bind(this));
+            return data;
+		};
+
+        MatchMeResults.prototype.nextPage = function() {
+
+            if ((this.busy | this.end) && this.query) return;
+			this.busy = true;
+            var self = this;
+
+			Restangular.all('posts').getList({
+			    where : self.param1,
+				max_results: 30,
+				page: self.page,
+				embedded : self.param2
+			}).then(function(data) {
+
+                if (data.length === 0) {
+					self.end = true;
+				}
+				//console.log('called infinity scroll')
+				self.mresults.push.apply(self.mresults, data);
+                self.mresults = removeDuplicateResults(self.mresults);
+				self.page = self.page + 1;
+				self.busy = false;
+
+			}.bind(self));
+
+
+		};
+
+
+		MatchMeResults.prototype.nextPageSearchResults = function() {
+            //console.log("nextpage search resutls")
+			if ((this.sBusy | this.sEnd) && this.query) return;
+			this.sBusy = true;
+            var self = this;
+
+			Restangular.all('searchActivity').getList({
+			    where : self.param1,
+				max_results: 30,
+				page: self.sPage,
+				embedded : self.param2
+			}).then(function(data) {
+
+                if (data.length === 0) {
+					self.sEnd = true;
+				}
+
+				self.mresults.push.apply(self.mresults, data);
+                self.mresults = removeDuplicateResults(self.mresults);
+
+				self.sPage = self.sPage + 1;
+				self.sBusy = false;
+
+			}.bind(self));
+		};
+
+		/*MatchMeResults.prototype.getMatchPeoples = function(searchText) {
+
+			var params = '{"$or":[{"name.first":{"$regex":".*'+searchText+'.*"}},{"name.last":{"$regex":".*'+searchText+'.*"}},'+
+			             '{"username":{"$regex":".*'+searchText+'.*"}}]}';
+			Restangular.all('people').getList({
+				where :params
+				}).then(function(data) {
+					this.totalNames = data.length;
+					this.searchNames.push.apply(this.searchNames,data);
+				}.bind(this));
+
+		};
+
+		MatchMeResults.prototype.getSuggestedPeople = function(){
+
+            function combine_ids(ids) {
+   			    return (ids.length ? "\"" + ids.join("\",\"") + "\"" : "");
+		    }
+
+            var param = '{"interestsimilarwords":{"$in":['+combine_ids(this.query.split(" "))+']}}';
+            Restangular.all("people").getList({
+					where: param,
+					seed : Math.random()
+			}).then(function(data){
+                   if(data.length >= 1){
+                     this.suggestpeople = true;
+			       }
+					var tempresutls = [];
+					this.mresults.push.apply(this.mresults,data);
+					for(var temp in this.mresults){
+					    var author = {
+					        author:{
+                                name:{
+                                    first:this.mresults[temp].name.first,
+                                    last: this.mresults[temp].name.last,
+                                },
+                                _id:this.mresults[temp]._id,
+                                picture:{
+                                    medium:this.mresults[temp].picture.medium
+                                }
+                            }
+					    }
+					    tempresutls.push(author);
+					}
+
+					this.mresults = tempresutls;
+			}.bind(this));
+		}*/
+		return MatchMeResults;
+	});angular.module('weberApp')
 
 .filter('reverse', function() {
   return function(items) {

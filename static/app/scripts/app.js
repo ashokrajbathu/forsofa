@@ -75,6 +75,11 @@ angular
 		$authProvider.logoutRedirect = '/search';
 		$authProvider.loginOnSignup = true;
 		$routeProvider
+			.when('/', {
+				templateUrl: '/static/app/views/start.html',
+				controller: 'WeberSearchCtrl',
+				reloadOnSearch: false
+			})
 			.when('/home', {
 				templateUrl: '/static/app/views/main.html',
 				controller: 'MainCtrl',
@@ -98,7 +103,14 @@ angular
 			.when('/search/:query?', {
 				templateUrl: '/static/app/views/start_search.html',
 				controller: 'WeberSearchCtrl',
-				reloadOnSearch: false
+				reloadOnSearch: false,
+				resolve: {
+					authenticated: function($location, $auth) {
+						if (!$auth.isAuthenticated()) {
+							return $location.path('/login');
+						}
+					}
+				}
 			})
 			.when('/login', {
 				templateUrl: '/static/app/views/login.html',
@@ -128,7 +140,7 @@ angular
 			})
 			.when('/messages', {
 				templateUrl: '/static/app/views/messages.html',
-				controller: 'MessagesCtrl',
+				controller: 'MessageCtrl',
 				resolve: {
 					authenticated: function($location, $auth) {
 						if (!$auth.isAuthenticated()) {
@@ -183,7 +195,7 @@ angular
                templateUrl: '/static/app/views/careers.html',
            })
            .otherwise({
-				redirectTo: '/search',
+				redirectTo: '/',
 				reloadOnSearch: false
 		   });
 	});

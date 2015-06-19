@@ -1,6 +1,6 @@
 angular.module('weberApp')
 
-    .factory('ChatActivity', function($http, Restangular,$auth, UserService) {
+    .factory('ChatActivity', function($http, Restangular, $auth, UserService) {
 
         var ChatActivity = function(currentuser){
             this.currentuser = currentuser;
@@ -82,7 +82,6 @@ angular.module('weberApp')
         ChatActivity.prototype.loadMessages = function(user1, user2, roomdetails){
 
             var self = this;
-
             this.busy = true;
             var page = null;
             var key = null;

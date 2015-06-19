@@ -108,7 +108,7 @@
 #button_show_hide{
     position: fixed;
     top: 90px;
-    right: 253px;
+    right: 250px;
     height: 32px;
     z-index: 1;
     -webkit-transition: all 0.2s ease-out;
@@ -264,7 +264,8 @@ Hides the menu at `48em`, but modify this based on your app's needs.
 }
 .bubbledLeft,.bubbledRight {
     margin-top: 8px;
-    padding: 5px 10px;
+    margin-bottom: 8px;
+    padding: 10px;
     max-width: 90%;
     clear: both;
     position: relative;

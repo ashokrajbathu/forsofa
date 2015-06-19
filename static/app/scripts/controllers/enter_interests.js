@@ -41,7 +41,7 @@ angular.module('weberApp')
                     });
                 }
 
-                $scope.afterFinishQuestions = function(){
+                /*$scope.afterFinishQuestions = function(){
                     $location.path('/home');
                 }
                 // questions section functions
@@ -79,7 +79,7 @@ angular.module('weberApp')
                     // success hide
                     $scope.show_interests = true;
                     $scope.show_questions = false;
-                }
+                }*/
                 $scope.newUserInterests = function(){
                     for(var temp in $rootScope.currentUser.interests){
                         $scope.final_interests_array.push(InterestsService.get($rootScope.currentUser.interests[temp]).interest_string)
