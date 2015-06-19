@@ -19,7 +19,7 @@ import string
 from friendRequests import Friends, Notifications, MatchUnmatch
 import logging
 from bson.json_util import dumps
-
+import pymongo
 
 logging.basicConfig(filename='/var/log/weber_error.log', format='%(asctime)s %(message)s', datefmt='%d/%m/%Y %I:%M:%S %p')
 
@@ -319,6 +319,26 @@ def deleteSearchHistoryItem():
                 return response
         response = jsonify(status="no search history item found")
         response.status_code = 401
+        return response
+    except Exception as e:
+        response = jsonify(error=e)
+        response.status_code = 500
+        return response
+
+def serialize_data(data):
+    serialized_data = []
+    for temp in data:
+         serialized_data.append(str(temp))
+    return serialized_data
+
+@app.route('/api/get-chat-users', methods=['POST'])
+def get_chat_users():
+    try:
+        messages = app.data.driver.db['messages']
+        data = messages.find({"sender":ObjectId(request.json['sender_id'])}).sort("message_created", pymongo.ASCENDING)\
+            .distinct("receiver")
+        response = jsonify(chat_users=serialize_data(data))
+        response.status_code = 200
         return response
     except Exception as e:
         response = jsonify(error=e)

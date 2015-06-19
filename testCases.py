@@ -10,7 +10,7 @@ class FlaskrTestCase(unittest.TestCase):
         app.config['TESTING'] = True
         self.app = app.test_client()
 
-    def test_login(self):
+    """def test_login(self):
         print '===login function testing===='
         pass_login_test = False
         email = 'carole.gilbert16@example.com'
@@ -38,7 +38,7 @@ class FlaskrTestCase(unittest.TestCase):
         self.assertTrue(pass_login_test)
 
 
-    """def test_register(self):
+    def test_register(self):
         print '===registration function testing===='
         pass_register_test = False
         email = 'testing_email'+str(random.randint(1, 101099245))+'@example.com'
@@ -57,7 +57,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         if response.status_code == 200 or response.status_code == 401:
             pass_register_test = True
-        self.assertTrue(pass_register_test)"""
+        self.assertTrue(pass_register_test)
 
     def test_addConversation(self):
         print '====add conversations===='
@@ -197,8 +197,16 @@ class FlaskrTestCase(unittest.TestCase):
             data=json.dumps({
                 'feedback_data': feedback_data
             }), content_type='application/json')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)"""
 
+    def test_get_chat_users(self):
+        sender_id = "556c49697695d00ea8e0aae0"
+        response = self.app.post('/api/get-chat-users',
+            data=json.dumps({
+                'sender_id': sender_id
+            }), content_type='application/json')
+        print response.data
+        self.assertEqual(response.status_code, 200)
 
 if __name__ == '__main__':
     unittest.main()
