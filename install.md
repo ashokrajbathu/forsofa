@@ -32,7 +32,7 @@ db.createUser({
 
 pip install loremipsum
 
-pip install nltk
+pip install nltk flask_mail
 
 then after download all nltk  packages by following way
 goto pythonn console.
