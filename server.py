@@ -335,8 +335,9 @@ def serialize_data(data):
 def get_chat_users():
     try:
         messages = app.data.driver.db['messages']
-        data = messages.find({"sender":ObjectId(request.json['sender_id'])}).sort("message_created", pymongo.ASCENDING)\
-            .distinct("receiver")
+        data = messages.find({ "$or" : [{"sender": ObjectId(request.json['sender_id'])},
+                                        {"receiver": ObjectId(request.json['sender_id'])}]})\
+            .sort("message_created", pymongo.ASCENDING).distinct("receiver")
         response = jsonify(chat_users=serialize_data(data))
         response.status_code = 200
         return response
